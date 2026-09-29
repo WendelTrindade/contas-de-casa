@@ -214,6 +214,21 @@
   .form-nova-categoria input{ flex:1; padding:9px 10px; border:1px solid var(--line); border-radius:var(--radius-sm); }
   .form-nova-categoria button{ background:var(--forest); color:#fff; border:none; padding:9px 16px; border-radius:var(--radius-sm); font-family:-apple-system,sans-serif; font-size:0.85rem;}
 
+  .chip-cartao-seletor{
+    background:var(--paper); color:var(--ink); padding:7px 14px; border-radius:20px; border:1px solid var(--line);
+    font-family:-apple-system,sans-serif; font-size:0.85rem;
+  }
+  .chip-cartao-seletor.chip-selecionado{ background:var(--forest); color:#fff; border-color:var(--forest); font-weight:600; }
+  .fatura-compra-item{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); gap:10px; }
+  .fatura-compra-item:last-child{ border-bottom:none; }
+  .fatura-compra-item .desc{ font-size:0.9rem; color:var(--ink); }
+  .fatura-compra-item .meta{ font-family:-apple-system,sans-serif; font-size:0.72rem; color:var(--ink-soft); margin-top:2px; }
+  .fatura-compra-item .val{ font-weight:600; color:var(--rose); font-family:-apple-system,sans-serif; white-space:nowrap; }
+  .selo-fatura{ display:inline-block; padding:3px 10px; border-radius:12px; font-family:-apple-system,sans-serif; font-size:0.72rem; font-weight:600; }
+  .selo-fatura.paga{ background:var(--sage); color:var(--forest-dark); }
+  .selo-fatura.aberta{ background:var(--gold-soft); color:#7A5A20; }
+  .selo-fatura.vencida{ background:var(--rose-soft); color:var(--rose); }
+
   .form-novo-cartao{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
   .form-novo-cartao .campo-modal{ margin-bottom:0; }
   .form-novo-cartao .largura-total{ grid-column: 1 / -1; }
@@ -354,6 +369,7 @@
       <button class="aba-btn" data-painel="painel-lancamentos">Lançamentos</button>
       <button class="aba-btn" data-painel="painel-insights">Onde eu erro</button>
       <button class="aba-btn" data-painel="painel-calendario">Calendário</button>
+      <button class="aba-btn" data-painel="painel-faturas">Faturas</button>
       <button class="aba-btn" data-painel="painel-categorias">Categorias</button>
       <button class="aba-btn" data-painel="painel-ajustes">Ajustes</button>
     </nav>
@@ -449,6 +465,26 @@
       <div class="bloco">
         <h2>Resumo do mês<span class="sub">O que você tem para pagar</span></h2>
         <div id="resumo-calendario-mes"></div>
+      </div>
+    </section>
+
+    <!-- FATURAS -->
+    <section class="painel" id="painel-faturas">
+      <div class="bloco">
+        <h2>Faturas por cartão<span class="sub">As compras de cada cartão, fatura a fatura</span></h2>
+        <div class="lista-categorias" id="chips-cartoes-fatura"></div>
+      </div>
+      <div class="bloco" id="bloco-fatura-detalhe" style="display:none;">
+        <div class="seletor-mes" style="margin-bottom:16px;">
+          <button id="fatura-ciclo-anterior">‹</button>
+          <div class="rotulo-mes" id="fatura-rotulo-ciclo">—</div>
+          <button id="fatura-ciclo-seguinte">›</button>
+        </div>
+        <div id="fatura-status"></div>
+      </div>
+      <div class="bloco" id="bloco-fatura-compras" style="display:none;">
+        <h2>Compras desta fatura<span class="sub">Lançadas no dia de cada compra</span></h2>
+        <div id="fatura-lista-compras"></div>
       </div>
     </section>
 
@@ -603,6 +639,33 @@
   </div>
 </div>
 
+<!-- ===================== MODAL PAGAMENTO DE FATURA ===================== -->
+<div class="fundo-modal" id="modal-pagar-fatura">
+  <div class="caixa-modal">
+    <h3>Registrar pagamento da fatura</h3>
+    <p class="sans" id="texto-pagar-fatura" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;"></p>
+    <div class="campo-modal">
+      <label for="pf-data">Data do pagamento</label>
+      <input type="date" id="pf-data">
+    </div>
+    <div class="linha-2">
+      <div class="campo-modal">
+        <label for="pf-juros">Juros (R$)</label>
+        <input type="number" id="pf-juros" step="0.01" min="0" placeholder="0,00">
+      </div>
+      <div class="campo-modal">
+        <label for="pf-taxas">Taxas / multa (R$)</label>
+        <input type="number" id="pf-taxas" step="0.01" min="0" placeholder="0,00">
+      </div>
+    </div>
+    <div class="sans" id="pf-resumo" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;background:var(--sage);padding:8px 10px;border-radius:6px;"></div>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-cancelar-pagar-fatura">Cancelar</button>
+      <button class="confirmar" id="btn-confirmar-pagar-fatura">Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -641,6 +704,10 @@ let idToken = null, refreshToken = null, uidUsuario = null;
 let pessoaAtual = null; // "Wendel" ou "Esposa"
 let categorias = [];
 let cartoes = [];
+let pagamentosFatura = [];
+let cartaoSelecionadoFaturaId = null;
+let offsetCicloFatura = 0;
+let faturaPagamentoPendente = null;
 let lancamentos = []; // todos, carregados uma vez
 let mesReferencia = new Date(); mesReferencia.setDate(1);
 let modoEdicaoId = null;
@@ -788,10 +855,11 @@ async function excluirDocumento(colecao, id){
 async function carregarTudo(){
   $all('.painel').forEach(p=>{ if(!p.classList.contains('ativa')) return; });
   main_mostrarCarregando(true);
-  const [cats, lancs, cards] = await Promise.all([
+  const [cats, lancs, cards, pagsFatura] = await Promise.all([
     listarDocumentos('categorias'),
     listarDocumentos('lancamentos'),
-    listarDocumentos('cartoes')
+    listarDocumentos('cartoes'),
+    listarDocumentos('pagamentosFatura')
   ]);
   if(cats.length === 0){
     // primeira vez: cria categorias padrão
@@ -811,6 +879,7 @@ async function carregarTudo(){
   } else {
     cartoes = cards;
   }
+  pagamentosFatura = pagsFatura;
   lancamentos = lancs.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
   main_mostrarCarregando(false);
   preencherSelectsCategoria();
@@ -844,6 +913,7 @@ function renderizarTudo(){
   renderizarCategorias();
   renderizarCartoes();
   renderizarCalendario();
+  renderizarPainelFaturas();
 }
 function capitalizar(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
@@ -1139,6 +1209,216 @@ function renderizarCartoes(){
 
     container.appendChild(card);
   });
+}
+
+/* =========================================================================
+   FATURAS POR CARTÃO
+========================================================================= */
+function isoDeData(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function formatarDataAno(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+function cicloComOffset(diaFechamento, offset){
+  const cicloAtual = calcularCicloFatura(diaFechamento, new Date());
+  if(offset === 0) return cicloAtual;
+  const ancora = new Date(cicloAtual.fim.getFullYear(), cicloAtual.fim.getMonth()+offset, cicloAtual.fim.getDate());
+  return calcularCicloFatura(diaFechamento, ancora);
+}
+
+function renderizarPainelFaturas(){
+  const chips = $('#chips-cartoes-fatura');
+  chips.innerHTML = '';
+  if(cartoes.length===0){
+    chips.innerHTML = '<div class="vazio" style="padding:6px 0;">Nenhum cartão cadastrado. Cadastre um cartão na aba Categorias.</div>';
+    $('#bloco-fatura-detalhe').style.display = 'none';
+    $('#bloco-fatura-compras').style.display = 'none';
+    return;
+  }
+  if(!cartaoSelecionadoFaturaId || !cartoes.some(c=>c.id===cartaoSelecionadoFaturaId)){
+    cartaoSelecionadoFaturaId = cartoes[0].id;
+  }
+  cartoes.forEach(cartao=>{
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip-cartao-seletor' + (cartao.id===cartaoSelecionadoFaturaId ? ' chip-selecionado' : '');
+    chip.textContent = cartao.nome;
+    chip.addEventListener('click', ()=>{
+      cartaoSelecionadoFaturaId = cartao.id;
+      offsetCicloFatura = 0;
+      renderizarPainelFaturas();
+    });
+    chips.appendChild(chip);
+  });
+  renderizarDetalheFatura();
+}
+
+function renderizarDetalheFatura(){
+  const cartao = cartoes.find(c=>c.id===cartaoSelecionadoFaturaId);
+  const blocoDetalhe = $('#bloco-fatura-detalhe');
+  const blocoCompras = $('#bloco-fatura-compras');
+  if(!cartao){ blocoDetalhe.style.display='none'; blocoCompras.style.display='none'; return; }
+
+  if(!cartao.diaFechamento || !cartao.diaVencimento){
+    blocoDetalhe.style.display = 'block';
+    blocoCompras.style.display = 'none';
+    $('#fatura-rotulo-ciclo').textContent = '—';
+    $('#fatura-status').innerHTML = '<div class="vazio">Cadastre o dia de fechamento e o dia de vencimento deste cartão na aba Categorias para acompanhar as faturas.</div>';
+    return;
+  }
+  blocoDetalhe.style.display = 'block';
+  blocoCompras.style.display = 'block';
+
+  const ciclo = cicloComOffset(cartao.diaFechamento, offsetCicloFatura);
+  const vencimento = proximaOcorrenciaDia(cartao.diaVencimento, ciclo.fim);
+  $('#fatura-rotulo-ciclo').textContent = formatarDataCurta(ciclo.inicio)+' a '+formatarDataCurta(ciclo.fim);
+
+  const compras = lancamentos.filter(l=>{
+    if(l.tipo!=='despesa' || l.formaPagamento!=='credito' || l.cartao!==cartao.nome) return false;
+    const d = dataISOparaData(l.data);
+    return d >= ciclo.inicio && d <= ciclo.fim;
+  }).sort((a,b)=> a.data.localeCompare(b.data));
+  const totalCompras = compras.reduce((s,l)=>s+Number(l.valor||0),0);
+
+  const cicloFimISO = isoDeData(ciclo.fim);
+  const pagamento = pagamentosFatura.find(p=> p.cartaoId===cartao.id && p.cicloFim===cicloFimISO);
+  const hojeISO = new Date().toISOString().slice(0,10);
+
+  const statusEl = $('#fatura-status');
+  statusEl.innerHTML = '';
+  const card = document.createElement('div'); card.className = 'cartao-detalhado';
+
+  const faturaInfo = document.createElement('div'); faturaInfo.className='fatura-info';
+  const spFecha = document.createElement('span'); spFecha.innerHTML = 'Fecha em <b>'+formatarDataAno(ciclo.fim)+'</b>';
+  const spVence = document.createElement('span'); spVence.innerHTML = 'Vence em <b>'+formatarDataAno(vencimento)+'</b>';
+  faturaInfo.appendChild(spFecha); faturaInfo.appendChild(spVence);
+  card.appendChild(faturaInfo);
+
+  const linhaSelo = document.createElement('div'); linhaSelo.style.cssText='margin-top:8px;';
+  const selo = document.createElement('span');
+  if(pagamento){
+    selo.className = 'selo-fatura paga'; selo.textContent = 'Paga em '+formatarDataAno(dataISOparaData(pagamento.dataPagamento));
+  } else if(cicloFimISO < hojeISO && isoDeData(vencimento) < hojeISO){
+    selo.className = 'selo-fatura vencida'; selo.textContent = 'Vencida';
+  } else {
+    selo.className = 'selo-fatura aberta'; selo.textContent = 'Em aberto';
+  }
+  linhaSelo.appendChild(selo);
+  card.appendChild(linhaSelo);
+
+  const gastoEl = document.createElement('div'); gastoEl.className='gasto-ciclo';
+  gastoEl.textContent = 'Total das compras: '+formatarMoeda(totalCompras);
+  card.appendChild(gastoEl);
+
+  if(pagamento){
+    const detalhePagamento = document.createElement('div'); detalhePagamento.className='fatura-info'; detalhePagamento.style.marginTop='6px';
+    if(Number(pagamento.valorJuros)>0){
+      const sp = document.createElement('span'); sp.innerHTML = 'Juros: <b>'+formatarMoeda(pagamento.valorJuros)+'</b>'; detalhePagamento.appendChild(sp);
+    }
+    if(Number(pagamento.valorTaxas)>0){
+      const sp = document.createElement('span'); sp.innerHTML = 'Taxas/multa: <b>'+formatarMoeda(pagamento.valorTaxas)+'</b>'; detalhePagamento.appendChild(sp);
+    }
+    card.appendChild(detalhePagamento);
+    const totalPagoEl = document.createElement('div'); totalPagoEl.className='gasto-ciclo'; totalPagoEl.style.color='var(--forest)';
+    totalPagoEl.textContent = 'Total pago: '+formatarMoeda(pagamento.valorTotal);
+    card.appendChild(totalPagoEl);
+  } else {
+    const btn = document.createElement('button');
+    btn.className = 'btn-secundario'; btn.style.cssText = 'width:100%;margin-top:12px;';
+    btn.textContent = 'Registrar pagamento da fatura';
+    btn.addEventListener('click', ()=>abrirModalPagarFatura(cartao, ciclo, totalCompras));
+    card.appendChild(btn);
+  }
+
+  statusEl.appendChild(card);
+
+  const listaEl = $('#fatura-lista-compras');
+  listaEl.innerHTML = '';
+  if(compras.length===0){
+    listaEl.innerHTML = '<div class="vazio">Nenhuma compra neste ciclo.</div>';
+  } else {
+    compras.forEach(l=>{
+      const item = document.createElement('div'); item.className='fatura-compra-item';
+      const esq = document.createElement('div');
+      const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
+      const meta = document.createElement('div'); meta.className='meta';
+      meta.textContent = formatarDataExibicao(l.data)+' • '+(l.categoria||'Outros')+' • '+(l.pessoa||'—')
+        + (Number(l.parcelaTotal)>1 ? ' • '+l.parcelaAtual+'/'+l.parcelaTotal : '');
+      esq.appendChild(desc); esq.appendChild(meta);
+      const val = document.createElement('div'); val.className='val'; val.textContent = formatarMoeda(l.valor);
+      item.appendChild(esq); item.appendChild(val);
+      listaEl.appendChild(item);
+    });
+  }
+}
+
+async function garantirCategoriaJurosTaxas(){
+  const nome = 'Juros e Taxas de Cartão';
+  const existente = categorias.find(c=> c.nome.toLowerCase()===nome.toLowerCase());
+  if(existente) return existente.nome;
+  const criado = await criarDocumento('categorias', {nome});
+  const id = criado.name.split('/').pop();
+  categorias.push({id, nome});
+  preencherSelectsCategoria();
+  return nome;
+}
+
+function abrirModalPagarFatura(cartao, ciclo, totalCompras){
+  faturaPagamentoPendente = {cartao, ciclo, totalCompras};
+  $('#texto-pagar-fatura').textContent = 'Fatura do cartão '+cartao.nome+' — período de '+formatarDataAno(ciclo.inicio)+' a '+formatarDataAno(ciclo.fim)+'. Total das compras: '+formatarMoeda(totalCompras)+'.';
+  $('#pf-data').value = new Date().toISOString().slice(0,10);
+  $('#pf-juros').value = '';
+  $('#pf-taxas').value = '';
+  atualizarResumoPagamentoFatura();
+  $('#modal-pagar-fatura').classList.add('ativo');
+}
+function fecharModalPagarFatura(){ $('#modal-pagar-fatura').classList.remove('ativo'); faturaPagamentoPendente = null; }
+function atualizarResumoPagamentoFatura(){
+  if(!faturaPagamentoPendente) return;
+  const juros = parseFloat($('#pf-juros').value)||0;
+  const taxas = parseFloat($('#pf-taxas').value)||0;
+  const total = faturaPagamentoPendente.totalCompras + juros + taxas;
+  $('#pf-resumo').textContent = 'Total a pagar (compras + juros + taxas): '+formatarMoeda(total);
+}
+
+async function confirmarPagamentoFatura(){
+  if(!faturaPagamentoPendente) return;
+  const {cartao, ciclo, totalCompras} = faturaPagamentoPendente;
+  const dataPagamento = $('#pf-data').value;
+  const juros = parseFloat($('#pf-juros').value)||0;
+  const taxas = parseFloat($('#pf-taxas').value)||0;
+  if(!dataPagamento){ mostrarToast('Informe a data do pagamento.'); return; }
+  const total = totalCompras + juros + taxas;
+
+  const btn = $('#btn-confirmar-pagar-fatura');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try{
+    const payload = {
+      cartaoId: cartao.id, cartaoNome: cartao.nome,
+      cicloInicio: isoDeData(ciclo.inicio), cicloFim: isoDeData(ciclo.fim),
+      dataPagamento, valorCompras: totalCompras, valorJuros: juros, valorTaxas: taxas, valorTotal: total
+    };
+    const criado = await criarDocumento('pagamentosFatura', payload);
+    const id = criado.name.split('/').pop();
+    pagamentosFatura.push(Object.assign({id}, payload));
+
+    if(juros+taxas > 0){
+      const nomeCategoria = await garantirCategoriaJurosTaxas();
+      const payloadLancamento = {
+        descricao: 'Juros/taxas fatura '+cartao.nome+' ('+formatarDataCurta(ciclo.fim)+')',
+        valor: juros+taxas, data: dataPagamento, categoria: nomeCategoria, pessoa: pessoaAtual||'Wendel',
+        tipo:'despesa', formaPagamento:'dinheiro', cartao:'', parcelaAtual:1, parcelaTotal:1, grupoParcelaId:''
+      };
+      const criadoLanc = await criarDocumento('lancamentos', payloadLancamento);
+      const idLanc = criadoLanc.name.split('/').pop();
+      lancamentos.unshift(Object.assign({id:idLanc}, payloadLancamento));
+      lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+    }
+
+    fecharModalPagarFatura();
+    renderizarTudo();
+    mostrarToast('Pagamento da fatura registrado.');
+  }catch(e){
+    mostrarToast('Não foi possível registrar o pagamento. Verifique a conexão.');
+  }
+  btn.disabled = false; btn.textContent = 'Confirmar pagamento';
 }
 
 function preencherSelectsCategoria(){
@@ -1660,6 +1940,13 @@ $('#btn-confirmar-confirmar').addEventListener('click', async ()=>{
   if(acaoConfirmacaoPendente) await acaoConfirmacaoPendente();
   fecharConfirmacao();
 });
+
+$('#fatura-ciclo-anterior').addEventListener('click', ()=>{ offsetCicloFatura--; renderizarDetalheFatura(); });
+$('#fatura-ciclo-seguinte').addEventListener('click', ()=>{ offsetCicloFatura++; renderizarDetalheFatura(); });
+$('#btn-cancelar-pagar-fatura').addEventListener('click', fecharModalPagarFatura);
+$('#btn-confirmar-pagar-fatura').addEventListener('click', confirmarPagamentoFatura);
+$('#pf-juros').addEventListener('input', atualizarResumoPagamentoFatura);
+$('#pf-taxas').addEventListener('input', atualizarResumoPagamentoFatura);
 
 $('#busca-lancamento').addEventListener('input', renderizarListaLancamentos);
 $('#filtro-categoria').addEventListener('change', renderizarListaLancamentos);
