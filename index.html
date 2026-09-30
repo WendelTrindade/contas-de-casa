@@ -486,6 +486,13 @@
     <section class="painel" id="painel-calendario">
       <div class="bloco">
         <h2>Calendário de pagamentos<span class="sub">Toque em um dia para ver o que tem para pagar</span></h2>
+        <div class="filtros" style="margin-bottom:12px;">
+          <select id="filtro-status-calendario">
+            <option value="pendente">Em aberto (padrão)</option>
+            <option value="pago">Pagos no mês</option>
+            <option value="">Pagos e em aberto</option>
+          </select>
+        </div>
         <div class="calendario-cabecalho" id="calendario-cabecalho"></div>
         <div class="grade-calendario" id="grade-calendario"></div>
         <div class="legenda-calendario">
@@ -499,7 +506,7 @@
         <div id="lista-dia-selecionado"></div>
       </div>
       <div class="bloco">
-        <h2>Resumo do mês<span class="sub">O que você tem para pagar</span></h2>
+        <h2 id="titulo-resumo-calendario-mes">Resumo do mês<span class="sub">O que você tem para pagar</span></h2>
         <div id="resumo-calendario-mes"></div>
       </div>
     </section>
@@ -830,6 +837,7 @@ let mesReferencia = new Date(); mesReferencia.setDate(1);
 let mesRelatorio = new Date(); mesRelatorio.setDate(1);
 let modoEdicaoId = null;
 let diaSelecionadoCalendario = null;
+let filtroStatusCalendario = 'pendente';
 let tipoSelecionadoModal = "despesa";
 let pagoSelecionadoModal = "pendente";
 
@@ -1968,7 +1976,11 @@ function renderizarCalendario(){
   const totalDias = new Date(ano, mes+1, 0).getDate();
   const hojeISO = new Date().toISOString().slice(0,10);
 
-  const doMes = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa');
+  const doMes = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa').filter(l=>{
+    if(filtroStatusCalendario==='pendente') return !ehPago(l);
+    if(filtroStatusCalendario==='pago') return ehPago(l);
+    return true;
+  });
   const porDia = {};
   doMes.forEach(l=>{ (porDia[l.data] = porDia[l.data]||[]).push(l); });
 
@@ -2016,10 +2028,17 @@ function renderizarDiaSelecionado(){
   const vencido = diaSelecionadoCalendario < hojeISO;
   $('#titulo-dia-selecionado').textContent = d+'/'+m+'/'+a + (vencido ? ' — vencido' : (diaSelecionadoCalendario===hojeISO ? ' — hoje' : ''));
 
-  const itens = lancamentos.filter(l=> l.tipo==='despesa' && l.data===diaSelecionadoCalendario);
+  const itens = lancamentos.filter(l=> l.tipo==='despesa' && l.data===diaSelecionadoCalendario).filter(l=>{
+    if(filtroStatusCalendario==='pendente') return !ehPago(l);
+    if(filtroStatusCalendario==='pago') return ehPago(l);
+    return true;
+  });
   const container = $('#lista-dia-selecionado');
   container.innerHTML = '';
-  if(itens.length===0){ container.innerHTML = '<div class="vazio">Nada para pagar neste dia.</div>'; return; }
+  if(itens.length===0){
+    container.innerHTML = '<div class="vazio">'+(filtroStatusCalendario==='pago' ? 'Nada pago neste dia.' : 'Nada para pagar neste dia.')+'</div>';
+    return;
+  }
 
   let total = 0;
   itens.forEach(l=>{
@@ -2037,6 +2056,13 @@ function renderizarDiaSelecionado(){
       const t = document.createElement('span'); t.className='tag'; t.textContent = 'Financiamento'+(Number(l.parcelaTotal)>1?' • '+l.parcelaAtual+'/'+l.parcelaTotal:'');
       meta.appendChild(t);
     }
+    const pago = ehPago(l);
+    const selo = document.createElement('span');
+    selo.className = 'selo-pagamento '+(pago?'pago':'pendente');
+    selo.textContent = pago ? 'Pago' : 'Pendente';
+    selo.title = pago ? 'Toque para marcar como pendente' : 'Toque para marcar como pago';
+    selo.addEventListener('click', ()=>alternarStatusPagamento(l));
+    meta.appendChild(selo);
     esq.appendChild(desc); esq.appendChild(meta);
     const dir = document.createElement('div'); dir.className='dir';
     const val = document.createElement('div'); val.className='val despesa'; val.textContent = '- '+formatarMoeda(l.valor);
@@ -2053,16 +2079,33 @@ function renderizarDiaSelecionado(){
 }
 function renderizarResumoCalendarioMes(doMesDespesas){
   const container = $('#resumo-calendario-mes');
+  const tituloSub = document.querySelector('#titulo-resumo-calendario-mes .sub');
   const hojeISO = new Date().toISOString().slice(0,10);
   const totalMes = doMesDespesas.reduce((s,l)=>s+Number(l.valor||0),0);
-  const totalVencido = doMesDespesas.filter(l=>l.data<hojeISO).reduce((s,l)=>s+Number(l.valor||0),0);
-  const totalAVencer = totalMes - totalVencido;
   container.innerHTML = '';
-  const linhas = [
-    ['Total a pagar no mês', totalMes, 'var(--ink)'],
-    ['Já vencido', totalVencido, 'var(--rose)'],
-    ['Ainda a vencer', totalAVencer, 'var(--forest)']
-  ];
+  let linhas;
+  if(filtroStatusCalendario==='pago'){
+    if(tituloSub) tituloSub.textContent = 'O que você já pagou este mês';
+    linhas = [ ['Total pago no mês', totalMes, 'var(--forest)'] ];
+  } else if(filtroStatusCalendario===''){
+    const totalPago = doMesDespesas.filter(ehPago).reduce((s,l)=>s+Number(l.valor||0),0);
+    const totalPendente = doMesDespesas.filter(l=>!ehPago(l)).reduce((s,l)=>s+Number(l.valor||0),0);
+    if(tituloSub) tituloSub.textContent = 'Pagos e em aberto no mês';
+    linhas = [
+      ['Total do mês', totalMes, 'var(--ink)'],
+      ['Já pago', totalPago, 'var(--forest)'],
+      ['Em aberto', totalPendente, 'var(--rose)']
+    ];
+  } else {
+    const totalVencido = doMesDespesas.filter(l=>l.data<hojeISO).reduce((s,l)=>s+Number(l.valor||0),0);
+    const totalAVencer = totalMes - totalVencido;
+    if(tituloSub) tituloSub.textContent = 'O que você tem para pagar';
+    linhas = [
+      ['Total em aberto no mês', totalMes, 'var(--ink)'],
+      ['Já vencido', totalVencido, 'var(--rose)'],
+      ['Ainda a vencer', totalAVencer, 'var(--forest)']
+    ];
+  }
   linhas.forEach(([label,valor,cor])=>{
     const linha = document.createElement('div'); linha.className='config-linha';
     const sp1 = document.createElement('span'); sp1.textContent = label;
@@ -2514,6 +2557,10 @@ $('#busca-lancamento').addEventListener('input', renderizarListaLancamentos);
 $('#filtro-categoria').addEventListener('change', renderizarListaLancamentos);
 $('#filtro-tipo').addEventListener('change', renderizarListaLancamentos);
 $('#filtro-status').addEventListener('change', renderizarListaLancamentos);
+$('#filtro-status-calendario').addEventListener('change', (e)=>{
+  filtroStatusCalendario = e.target.value;
+  renderizarCalendario();
+});
 $('#btn-add-categoria').addEventListener('click', adicionarCategoria);
 $('#nova-categoria').addEventListener('keydown', e=>{ if(e.key==='Enter') adicionarCategoria(); });
 $('#btn-add-pessoa').addEventListener('click', adicionarPessoa);
