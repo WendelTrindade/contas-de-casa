@@ -313,6 +313,33 @@
   .selo-pagamento{ display:inline-block; padding:2px 9px; border-radius:12px; font-family:-apple-system,sans-serif; font-size:0.68rem; font-weight:600; margin-left:6px; vertical-align:middle; }
   .selo-pagamento.pago{ background:var(--sage); color:var(--forest-dark); }
   .selo-pagamento.pendente{ background:var(--gold-soft); color:#7A5A20; cursor:pointer; }
+
+  .caixa-modal-larga{ max-width:620px; }
+  .lote-topo{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .lote-lista{ max-height:280px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-sm); }
+  .lote-item{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--line); font-family:-apple-system,sans-serif; }
+  .lote-item:last-child{ border-bottom:none; }
+  .lote-item .desc{ flex:1; font-size:0.85rem; color:var(--ink); }
+  .lote-item .meta{ font-size:0.72rem; color:var(--ink-soft); }
+  .lote-item .val{ font-weight:600; color:var(--rose); font-size:0.85rem; white-space:nowrap; }
+  .btn-quitar-lote{ background:var(--forest); color:#fff; border:none; padding:9px 14px; border-radius:var(--radius-sm); font-family:-apple-system,sans-serif; font-size:0.82rem; margin-top:10px; }
+
+  .bloco-relatorio{ margin-bottom:10px; }
+  .linha-relatorio{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); font-family:-apple-system,sans-serif; font-size:0.86rem; }
+  .linha-relatorio:last-child{ border-bottom:none; }
+  .linha-relatorio .rot{ color:var(--ink-soft); }
+  .linha-relatorio .val{ font-weight:600; color:var(--ink); }
+  .grupo-mes-relatorio{ margin-bottom:16px; }
+  .grupo-mes-relatorio h4{ font-size:0.85rem; color:var(--forest-dark); margin-bottom:4px; display:flex; justify-content:space-between; }
+  .seletor-mes-relatorio{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  @media print{
+    .topo, .abas, main > .seletor-mes, .botao-flutuante, .fundo-modal, .toast,
+    .seletor-mes-relatorio, #btn-imprimir-relatorio{ display:none !important; }
+    section.painel{ display:none !important; }
+    section.painel#painel-relatorios{ display:block !important; }
+    body{ background:#fff; }
+    .bloco{ box-shadow:none; border:1px solid #ccc; }
+  }
   .acoes-modal{ display:flex; gap:10px; margin-top:6px; }
   .acoes-modal button{ flex:1; padding:12px; border-radius:var(--radius-sm); font-family:-apple-system,sans-serif; font-size:0.92rem; border:none;}
   .acoes-modal .confirmar{ background:var(--forest); color:#fff; font-weight:600; }
@@ -372,6 +399,7 @@
       <button class="aba-btn" data-painel="painel-insights">Onde eu erro</button>
       <button class="aba-btn" data-painel="painel-calendario">Calendário</button>
       <button class="aba-btn" data-painel="painel-faturas">Faturas</button>
+      <button class="aba-btn" data-painel="painel-relatorios">Relatórios</button>
       <button class="aba-btn" data-painel="painel-categorias">Categorias</button>
       <button class="aba-btn" data-painel="painel-ajustes">Ajustes</button>
     </nav>
@@ -430,6 +458,7 @@
           <option value="pago">Só pagos</option>
         </select>
       </div>
+      <button class="btn-quitar-lote" id="btn-abrir-quitar-lote">Quitar várias parcelas</button>
       <div class="bloco">
         <div class="lista-lancamentos" id="lista-lancamentos">
           <div class="vazio">Nenhum lançamento neste mês ainda.</div>
@@ -492,6 +521,24 @@
       <div class="bloco" id="bloco-fatura-compras" style="display:none;">
         <h2>Compras desta fatura<span class="sub">Lançadas no dia de cada compra</span></h2>
         <div id="fatura-lista-compras"></div>
+      </div>
+    </section>
+
+    <!-- RELATÓRIOS -->
+    <section class="painel" id="painel-relatorios">
+      <div class="bloco">
+        <h2>Resumo mensal<span class="sub">Receitas, despesas e para onde foi o dinheiro</span></h2>
+        <div class="seletor-mes-relatorio">
+          <button id="relatorio-mes-anterior">‹</button>
+          <div class="rotulo-mes" id="relatorio-rotulo-mes">—</div>
+          <button id="relatorio-mes-seguinte">›</button>
+        </div>
+        <div id="relatorio-resumo-mensal"></div>
+        <button class="btn-secundario" id="btn-imprimir-relatorio" style="margin-top:14px;">Imprimir / salvar em PDF</button>
+      </div>
+      <div class="bloco">
+        <h2>Compromissos futuros<span class="sub">Tudo o que ainda está pendente, mês a mês</span></h2>
+        <div id="relatorio-futuros"></div>
       </div>
     </section>
 
@@ -692,6 +739,47 @@
   </div>
 </div>
 
+<!-- ===================== MODAL JUROS POR ATRASO ===================== -->
+<div class="fundo-modal" id="modal-juros-atraso">
+  <div class="caixa-modal">
+    <h3>Marcar como pago</h3>
+    <p class="sans" id="texto-juros-atraso" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;"></p>
+    <div class="campo-modal">
+      <label for="ja-juros">Juros / multa por atraso (R$) — opcional</label>
+      <input type="number" id="ja-juros" step="0.01" min="0" placeholder="0,00">
+    </div>
+    <div class="sans" id="ja-resumo" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;background:var(--sage);padding:8px 10px;border-radius:6px;"></div>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-cancelar-juros-atraso">Cancelar</button>
+      <button class="confirmar" id="btn-confirmar-juros-atraso">Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL QUITAR VÁRIAS PARCELAS ===================== -->
+<div class="fundo-modal" id="modal-quitar-lote">
+  <div class="caixa-modal caixa-modal-larga">
+    <h3>Quitar várias parcelas</h3>
+    <p class="sans" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:12px;">Selecione as despesas pendentes que deseja marcar como pagas.</p>
+    <div class="lote-topo">
+      <label class="sans" style="font-size:0.82rem;display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="lote-selecionar-todos"> Selecionar todas
+      </label>
+      <span class="sans" id="lote-total-selecionado" style="font-size:0.82rem;color:var(--ink-soft);">0 selecionadas</span>
+    </div>
+    <div id="lote-lista-pendentes" class="lote-lista"></div>
+    <div class="campo-modal" style="margin-top:14px;">
+      <label for="lote-juros">Juros / multa total (R$) — opcional</label>
+      <input type="number" id="lote-juros" step="0.01" min="0" placeholder="0,00">
+    </div>
+    <div class="sans" id="lote-resumo" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;background:var(--sage);padding:8px 10px;border-radius:6px;"></div>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-cancelar-quitar-lote">Cancelar</button>
+      <button class="confirmar" id="btn-confirmar-quitar-lote">Quitar selecionadas</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -739,6 +827,7 @@ let offsetCicloFatura = 0;
 let faturaPagamentoPendente = null;
 let lancamentos = []; // todos, carregados uma vez
 let mesReferencia = new Date(); mesReferencia.setDate(1);
+let mesRelatorio = new Date(); mesRelatorio.setDate(1);
 let modoEdicaoId = null;
 let diaSelecionadoCalendario = null;
 let tipoSelecionadoModal = "despesa";
@@ -956,6 +1045,8 @@ function renderizarTudo(){
   renderizarCartoes();
   renderizarCalendario();
   renderizarPainelFaturas();
+  renderizarRelatorioMensal();
+  renderizarRelatorioFuturos();
 }
 function capitalizar(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
@@ -1083,6 +1174,12 @@ function renderizarListaLancamentos(){
 }
 async function alternarStatusPagamento(l){
   const novoStatus = !ehPago(l);
+  const hojeISO = new Date().toISOString().slice(0,10);
+  const vencido = l.tipo==='despesa' && (l.data||'') < hojeISO;
+  if(novoStatus && vencido){
+    abrirModalJurosAtraso(l);
+    return;
+  }
   try{
     const payload = Object.assign({}, l, {pago: novoStatus});
     delete payload.id;
@@ -1094,6 +1191,172 @@ async function alternarStatusPagamento(l){
   }catch(e){
     mostrarToast('Não foi possível atualizar o status.');
   }
+}
+
+/* =========================================================================
+   QUITAR VÁRIAS PARCELAS DE UMA VEZ
+========================================================================= */
+let itensLoteSelecionados = new Set();
+
+function abrirModalQuitarLote(){
+  itensLoteSelecionados = new Set();
+  $('#lote-juros').value = '';
+  $('#lote-selecionar-todos').checked = false;
+  renderizarListaLote();
+  $('#modal-quitar-lote').classList.add('ativo');
+}
+function fecharModalQuitarLote(){ $('#modal-quitar-lote').classList.remove('ativo'); }
+
+function pendentesParaLote(){
+  return lancamentos
+    .filter(l=> l.tipo==='despesa' && !ehPago(l))
+    .sort((a,b)=> (a.data||'').localeCompare(b.data||''));
+}
+
+function renderizarListaLote(){
+  const container = $('#lote-lista-pendentes');
+  const pendentes = pendentesParaLote();
+  container.innerHTML = '';
+  if(pendentes.length===0){
+    container.innerHTML = '<div class="vazio" style="padding:14px;">Nenhuma despesa pendente no momento.</div>';
+  } else {
+    pendentes.forEach(l=>{
+      const item = document.createElement('label'); item.className='lote-item';
+      const chk = document.createElement('input'); chk.type='checkbox';
+      chk.checked = itensLoteSelecionados.has(l.id);
+      chk.addEventListener('change', ()=>{
+        if(chk.checked) itensLoteSelecionados.add(l.id); else itensLoteSelecionados.delete(l.id);
+        atualizarResumoLote();
+      });
+      const meio = document.createElement('div'); meio.style.flex='1';
+      const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao||'(sem descrição)';
+      const meta = document.createElement('div'); meta.className='meta'; meta.textContent = formatarDataExibicao(l.data)+' • '+(l.categoria||'Outros');
+      meio.appendChild(desc); meio.appendChild(meta);
+      const val = document.createElement('div'); val.className='val'; val.textContent = formatarMoeda(l.valor);
+      item.appendChild(chk); item.appendChild(meio); item.appendChild(val);
+      container.appendChild(item);
+    });
+  }
+  atualizarResumoLote();
+}
+
+function alternarSelecionarTodosLote(){
+  const marcar = $('#lote-selecionar-todos').checked;
+  const pendentes = pendentesParaLote();
+  itensLoteSelecionados = marcar ? new Set(pendentes.map(l=>l.id)) : new Set();
+  renderizarListaLote();
+}
+
+function atualizarResumoLote(){
+  const pendentes = pendentesParaLote();
+  const selecionados = pendentes.filter(l=>itensLoteSelecionados.has(l.id));
+  const totalSelecionado = selecionados.reduce((s,l)=>s+Number(l.valor||0),0);
+  const juros = parseFloat($('#lote-juros').value)||0;
+  $('#lote-total-selecionado').textContent = selecionados.length+' selecionada(s)';
+  $('#lote-resumo').textContent = 'Total a quitar (parcelas + juros/multa): '+formatarMoeda(totalSelecionado+juros);
+}
+
+async function confirmarQuitarLote(){
+  const pendentes = pendentesParaLote();
+  const selecionados = pendentes.filter(l=>itensLoteSelecionados.has(l.id));
+  if(selecionados.length===0){ mostrarToast('Selecione ao menos uma parcela.'); return; }
+  const juros = parseFloat($('#lote-juros').value)||0;
+
+  const btn = $('#btn-confirmar-quitar-lote');
+  btn.disabled = true; btn.textContent = 'Quitando...';
+  try{
+    for(const l of selecionados){
+      const payload = Object.assign({}, l, {pago:true});
+      delete payload.id;
+      await atualizarDocumento('lancamentos', l.id, payload);
+      const idx = lancamentos.findIndex(x=>x.id===l.id);
+      if(idx>-1) lancamentos[idx] = Object.assign({}, lancamentos[idx], {pago:true});
+    }
+    if(juros>0){
+      const nomeCategoria = await garantirCategoriaJurosAtraso();
+      const hojeISO = new Date().toISOString().slice(0,10);
+      const payloadJuros = {
+        descricao: 'Juros/multa por atraso — quitação de '+selecionados.length+' parcela(s)',
+        valor: juros, data: hojeISO, categoria: nomeCategoria, pessoa: pessoaAtual||'',
+        tipo:'despesa', formaPagamento:'dinheiro', cartao:'', parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+        pago:true
+      };
+      const criado = await criarDocumento('lancamentos', payloadJuros);
+      const id = criado.name.split('/').pop();
+      lancamentos.unshift(Object.assign({id}, payloadJuros));
+    }
+    lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+    fecharModalQuitarLote();
+    renderizarTudo();
+    mostrarToast(selecionados.length+' parcela(s) quitada(s).');
+  }catch(e){
+    mostrarToast('Não foi possível quitar as parcelas selecionadas.');
+  }
+  btn.disabled = false; btn.textContent = 'Quitar selecionadas';
+}
+
+/* =========================================================================
+   JUROS POR ATRASO
+========================================================================= */
+let itemJurosAtrasoPendente = null;
+function abrirModalJurosAtraso(l){
+  itemJurosAtrasoPendente = l;
+  $('#texto-juros-atraso').textContent = `"${l.descricao||'Lançamento'}" está vencido desde ${formatarDataExibicao(l.data)}. Valor original: ${formatarMoeda(l.valor)}.`;
+  $('#ja-juros').value = '';
+  atualizarResumoJurosAtraso();
+  $('#modal-juros-atraso').classList.add('ativo');
+}
+function fecharModalJurosAtraso(){ $('#modal-juros-atraso').classList.remove('ativo'); itemJurosAtrasoPendente = null; }
+function atualizarResumoJurosAtraso(){
+  if(!itemJurosAtrasoPendente) return;
+  const juros = parseFloat($('#ja-juros').value)||0;
+  const total = Number(itemJurosAtrasoPendente.valor||0) + juros;
+  $('#ja-resumo').textContent = 'Total pago: '+formatarMoeda(total);
+}
+async function garantirCategoriaJurosAtraso(){
+  const nome = 'Juros e Multas por Atraso';
+  const existente = categorias.find(c=> c.nome.toLowerCase()===nome.toLowerCase());
+  if(existente) return existente.nome;
+  const criado = await criarDocumento('categorias', {nome});
+  const id = criado.name.split('/').pop();
+  categorias.push({id, nome});
+  preencherSelectsCategoria();
+  return nome;
+}
+async function confirmarPagamentoComJuros(){
+  if(!itemJurosAtrasoPendente) return;
+  const l = itemJurosAtrasoPendente;
+  const juros = parseFloat($('#ja-juros').value)||0;
+  const btn = $('#btn-confirmar-juros-atraso');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try{
+    const payload = Object.assign({}, l, {pago:true});
+    delete payload.id;
+    await atualizarDocumento('lancamentos', l.id, payload);
+    const idx = lancamentos.findIndex(x=>x.id===l.id);
+    if(idx>-1) lancamentos[idx] = Object.assign({}, lancamentos[idx], {pago:true});
+
+    if(juros>0){
+      const nomeCategoria = await garantirCategoriaJurosAtraso();
+      const hojeISO = new Date().toISOString().slice(0,10);
+      const payloadJuros = {
+        descricao: 'Juros/multa por atraso — '+(l.descricao||'lançamento'),
+        valor: juros, data: hojeISO, categoria: nomeCategoria, pessoa: l.pessoa || (pessoaAtual||''),
+        tipo:'despesa', formaPagamento:'dinheiro', cartao:'', parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+        pago:true
+      };
+      const criado = await criarDocumento('lancamentos', payloadJuros);
+      const id = criado.name.split('/').pop();
+      lancamentos.unshift(Object.assign({id}, payloadJuros));
+      lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+    }
+    fecharModalJurosAtraso();
+    renderizarTudo();
+    mostrarToast(juros>0 ? 'Pagamento com juros registrado.' : 'Marcado como pago.');
+  }catch(e){
+    mostrarToast('Não foi possível registrar o pagamento.');
+  }
+  btn.disabled = false; btn.textContent = 'Confirmar pagamento';
 }
 function formatarDataExibicao(iso){
   if(!iso) return '';
@@ -1531,6 +1794,122 @@ async function confirmarPagamentoFatura(){
   btn.disabled = false; btn.textContent = 'Confirmar pagamento';
 }
 
+/* =========================================================================
+   RELATÓRIOS
+========================================================================= */
+function mudarMesRelatorio(delta){
+  mesRelatorio = new Date(mesRelatorio.getFullYear(), mesRelatorio.getMonth()+delta, 1);
+  renderizarRelatorioMensal();
+}
+
+function renderizarRelatorioMensal(){
+  const rotulo = $('#relatorio-rotulo-mes');
+  if(!rotulo) return;
+  rotulo.textContent = capitalizar(nomeMes(mesRelatorio));
+
+  const doMes = lancamentosDoMes(mesRelatorio).filter(ehPago);
+  const receitas = doMes.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
+  const despesas = doMes.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
+
+  const porCategoria = {}, porPessoa = {}, porCartao = {};
+  doMes.filter(l=>l.tipo==='despesa').forEach(l=>{
+    porCategoria[l.categoria||'Outros'] = (porCategoria[l.categoria||'Outros']||0) + Number(l.valor||0);
+    porPessoa[l.pessoa||'—'] = (porPessoa[l.pessoa||'—']||0) + Number(l.valor||0);
+    if(l.formaPagamento==='credito'){
+      porCartao[l.cartao||'Não informado'] = (porCartao[l.cartao||'Não informado']||0) + Number(l.valor||0);
+    }
+  });
+
+  const container = $('#relatorio-resumo-mensal');
+  container.innerHTML = '';
+
+  const blocoTotais = document.createElement('div'); blocoTotais.className='bloco-relatorio';
+  [['Receitas', receitas],['Despesas', despesas],['Saldo', receitas-despesas]].forEach(([rot,val])=>{
+    const linha = document.createElement('div'); linha.className='linha-relatorio';
+    const r = document.createElement('span'); r.className='rot'; r.textContent = rot;
+    const v = document.createElement('span'); v.className='val'; v.textContent = formatarMoeda(val);
+    linha.appendChild(r); linha.appendChild(v);
+    blocoTotais.appendChild(linha);
+  });
+  container.appendChild(blocoTotais);
+
+  function montarGrupo(titulo, dados){
+    const grupo = document.createElement('div'); grupo.className='grupo-mes-relatorio';
+    const h = document.createElement('h4'); h.textContent = titulo;
+    grupo.appendChild(h);
+    const entradas = Object.entries(dados).sort((a,b)=>b[1]-a[1]);
+    if(entradas.length===0){
+      const vazio = document.createElement('div'); vazio.className='vazio'; vazio.textContent='Sem dados neste mês.';
+      grupo.appendChild(vazio);
+    } else {
+      entradas.forEach(([nome,valor])=>{
+        const linha = document.createElement('div'); linha.className='linha-relatorio';
+        const r = document.createElement('span'); r.className='rot'; r.textContent = nome;
+        const v = document.createElement('span'); v.className='val'; v.textContent = formatarMoeda(valor);
+        linha.appendChild(r); linha.appendChild(v);
+        grupo.appendChild(linha);
+      });
+    }
+    container.appendChild(grupo);
+  }
+  montarGrupo('Por categoria', porCategoria);
+  montarGrupo('Por pessoa', porPessoa);
+  montarGrupo('Por cartão', porCartao);
+}
+
+function renderizarRelatorioFuturos(){
+  const container = $('#relatorio-futuros');
+  if(!container) return;
+  const hojeISO = new Date().toISOString().slice(0,10);
+  const pendentes = lancamentos.filter(l=> !ehPago(l) && (l.data||'') >= hojeISO)
+    .sort((a,b)=> (a.data||'').localeCompare(b.data||''));
+
+  container.innerHTML = '';
+  if(pendentes.length===0){
+    container.innerHTML = '<div class="vazio">Nenhum compromisso futuro pendente.</div>';
+    return;
+  }
+
+  const porMes = {};
+  pendentes.forEach(l=>{
+    const chave = (l.data||'').slice(0,7);
+    (porMes[chave] = porMes[chave] || []).push(l);
+  });
+
+  const totalGeral = pendentes.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
+  const totalTopo = document.createElement('div'); totalTopo.className='linha-relatorio';
+  totalTopo.style.cssText = 'font-weight:600;font-size:0.95rem;padding-bottom:10px;';
+  const rTopo = document.createElement('span'); rTopo.textContent = 'Total de despesas pendentes';
+  const vTopo = document.createElement('span'); vTopo.className='val'; vTopo.textContent = formatarMoeda(totalGeral);
+  totalTopo.appendChild(rTopo); totalTopo.appendChild(vTopo);
+  container.appendChild(totalTopo);
+
+  Object.keys(porMes).sort().forEach(chave=>{
+    const [ano,mes] = chave.split('-').map(Number);
+    const dataRef = new Date(ano, mes-1, 1);
+    const itens = porMes[chave];
+    const subtotal = itens.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
+
+    const grupo = document.createElement('div'); grupo.className='grupo-mes-relatorio';
+    const h = document.createElement('h4');
+    const spNome = document.createElement('span'); spNome.textContent = capitalizar(nomeMes(dataRef));
+    const spVal = document.createElement('span'); spVal.textContent = formatarMoeda(subtotal);
+    h.appendChild(spNome); h.appendChild(spVal);
+    grupo.appendChild(h);
+
+    itens.forEach(l=>{
+      const linha = document.createElement('div'); linha.className='linha-relatorio';
+      const r = document.createElement('span'); r.className='rot';
+      r.textContent = formatarDataExibicao(l.data)+' — '+(l.descricao||'(sem descrição)');
+      const v = document.createElement('span'); v.className='val';
+      v.textContent = (l.tipo==='receita'?'+ ':'- ')+formatarMoeda(l.valor);
+      linha.appendChild(r); linha.appendChild(v);
+      grupo.appendChild(linha);
+    });
+    container.appendChild(grupo);
+  });
+}
+
 function preencherSelectsCategoria(){
   const selects = [$('#m-categoria'), $('#filtro-categoria')];
   selects.forEach((sel, idx)=>{
@@ -1788,6 +2167,7 @@ async function salvarLancamento(){
     if(parcelaAtualFin > parcelaTotalFin){ mostrarToast('A parcela atual não pode ser maior que o total de parcelas.'); return; }
   }
 
+  let propagarParcelas = null;
   const btn = $('#btn-salvar-lancamento');
   btn.disabled = true; btn.textContent='Salvando...';
   try{
@@ -1804,6 +2184,16 @@ async function salvarLancamento(){
       await atualizarDocumento('lancamentos', modoEdicaoId, payload);
       const idx = lancamentos.findIndex(l=>l.id===modoEdicaoId);
       if(idx>-1) lancamentos[idx] = Object.assign({id:modoEdicaoId}, payload);
+
+      const valorMudou = Number(existente.valor||0) !== Number(valorDigitado);
+      if(valorMudou && existente.grupoParcelaId && Number(existente.parcelaTotal)>1){
+        const futuras = lancamentos.filter(l=>
+          l.grupoParcelaId===existente.grupoParcelaId &&
+          Number(l.parcelaAtual) > Number(existente.parcelaAtual) &&
+          !ehPago(l) && l.id!==modoEdicaoId
+        );
+        if(futuras.length>0){ propagarParcelas = {valor: valorDigitado, futuras}; }
+      }
     } else if(parcelasParaGerar > 1){
       const grupoId = gerarIdGrupo();
       for(let i=0;i<parcelasParaGerar;i++){
@@ -1856,6 +2246,25 @@ async function salvarLancamento(){
       mostrarToast('Financiamento lançado: '+qtd+' parcelas programadas até '+formatarDataExibicao(somarMeses(data, qtd-1))+'.');
     } else {
       mostrarToast('Lançamento salvo.');
+    }
+    if(propagarParcelas){
+      const {valor, futuras} = propagarParcelas;
+      abrirConfirmacao(
+        'Atualizar parcelas futuras?',
+        `Deseja aplicar o novo valor (${formatarMoeda(valor)}) às ${futuras.length} parcela(s) futura(s) ainda não paga(s) deste grupo?`,
+        async ()=>{
+          for(const f of futuras){
+            const payload2 = Object.assign({}, f, {valor});
+            delete payload2.id;
+            await atualizarDocumento('lancamentos', f.id, payload2);
+            const i2 = lancamentos.findIndex(x=>x.id===f.id);
+            if(i2>-1) lancamentos[i2] = Object.assign({}, lancamentos[i2], {valor});
+          }
+          fecharConfirmacao();
+          renderizarTudo();
+          mostrarToast('Parcelas futuras atualizadas.');
+        }
+      );
     }
   }catch(e){
     mostrarToast('Não foi possível salvar. Verifique a conexão.');
@@ -2061,6 +2470,9 @@ $('#btn-sair-2').addEventListener('click', sair);
 $all('.aba-btn').forEach(b=> b.addEventListener('click', ()=> irParaPainel(b.dataset.painel)));
 $('#mes-anterior').addEventListener('click', ()=>mudarMes(-1));
 $('#mes-seguinte').addEventListener('click', ()=>mudarMes(1));
+$('#relatorio-mes-anterior').addEventListener('click', ()=>mudarMesRelatorio(-1));
+$('#relatorio-mes-seguinte').addEventListener('click', ()=>mudarMesRelatorio(1));
+$('#btn-imprimir-relatorio').addEventListener('click', ()=>window.print());
 
 $('#btn-novo-lancamento').addEventListener('click', ()=>abrirModalLancamento(null));
 $('#tipo-receita').addEventListener('click', ()=>selecionarTipoModal('receita'));
@@ -2087,6 +2499,16 @@ $('#btn-cancelar-pagar-fatura').addEventListener('click', fecharModalPagarFatura
 $('#btn-confirmar-pagar-fatura').addEventListener('click', confirmarPagamentoFatura);
 $('#pf-juros').addEventListener('input', atualizarResumoPagamentoFatura);
 $('#pf-taxas').addEventListener('input', atualizarResumoPagamentoFatura);
+
+$('#btn-cancelar-juros-atraso').addEventListener('click', fecharModalJurosAtraso);
+$('#btn-confirmar-juros-atraso').addEventListener('click', confirmarPagamentoComJuros);
+$('#ja-juros').addEventListener('input', atualizarResumoJurosAtraso);
+
+$('#btn-abrir-quitar-lote').addEventListener('click', abrirModalQuitarLote);
+$('#btn-cancelar-quitar-lote').addEventListener('click', fecharModalQuitarLote);
+$('#btn-confirmar-quitar-lote').addEventListener('click', confirmarQuitarLote);
+$('#lote-selecionar-todos').addEventListener('change', alternarSelecionarTodosLote);
+$('#lote-juros').addEventListener('input', atualizarResumoLote);
 
 $('#busca-lancamento').addEventListener('input', renderizarListaLancamentos);
 $('#filtro-categoria').addEventListener('change', renderizarListaLancamentos);
