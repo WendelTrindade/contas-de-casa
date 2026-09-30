@@ -427,6 +427,13 @@
         </div>
       </div>
 
+      <div class="bloco" id="bloco-cheque-especial" style="display:none;">
+        <h2>Cheque especial<span class="sub">Uso do limite da conta</span></h2>
+        <div id="cheque-especial-resumo"></div>
+        <div class="barra-fundo" style="margin-top:8px;"><div class="barra-preenchida" id="cheque-especial-barra" style="width:0%;"></div></div>
+        <button class="btn-secundario" id="btn-pagar-cheque-especial" style="width:100%;margin-top:12px;display:none;">Registrar pagamento do cheque especial</button>
+      </div>
+
       <div class="bloco">
         <h2>Para onde o dinheiro foi<span class="sub">Gastos do mês por categoria</span></h2>
         <div id="ranking-categorias"><div class="vazio">Sem despesas lançadas neste mês.</div></div>
@@ -604,6 +611,22 @@
         </p>
       </div>
       <div class="bloco">
+        <h2>Cheque especial<span class="sub">Limite da conta para controlar o uso</span></h2>
+        <div class="config-linha"><span>Limite atual</span><span id="ajuste-limite-cheque-especial" class="sans">R$ 0,00</span></div>
+        <div class="linha-2" style="margin-top:10px;">
+          <div class="campo-modal">
+            <label for="input-limite-cheque-especial">Novo limite (R$)</label>
+            <input type="number" id="input-limite-cheque-especial" step="0.01" min="0" placeholder="0,00">
+          </div>
+          <div class="campo-modal" style="display:flex;align-items:flex-end;">
+            <button class="btn-secundario" id="btn-salvar-limite-cheque-especial" style="width:100%;">Salvar limite</button>
+          </div>
+        </div>
+        <p class="sans" style="font-size:0.78rem;color:var(--ink-soft);margin-top:6px;">
+          Cada despesa lançada como "Cheque especial" desconta desse limite até você registrar o pagamento.
+        </p>
+      </div>
+      <div class="bloco">
         <h2>Sobre este sistema</h2>
         <p class="sans" style="font-size:0.85rem;color:var(--ink-soft);line-height:1.5;">
           Controle financeiro privado da família, com dados salvos na nuvem (Firebase) e acesso restrito
@@ -659,6 +682,7 @@
         <option value="debito">Débito</option>
         <option value="credito">Crédito</option>
         <option value="financiamento">Financiamento / Prestação</option>
+        <option value="cheque_especial">Cheque especial</option>
       </select>
     </div>
     <div class="linha-2" id="campo-credito" style="display:none;">
@@ -732,6 +756,27 @@
     <div class="acoes-modal">
       <button class="cancelar" id="btn-cancelar-pagar-fatura">Cancelar</button>
       <button class="confirmar" id="btn-confirmar-pagar-fatura">Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL PAGAMENTO DE CHEQUE ESPECIAL ===================== -->
+<div class="fundo-modal" id="modal-pagar-cheque-especial">
+  <div class="caixa-modal">
+    <h3>Registrar pagamento do cheque especial</h3>
+    <p class="sans" id="texto-pagar-cheque-especial" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;"></p>
+    <div class="campo-modal">
+      <label for="pce-data">Data do pagamento</label>
+      <input type="date" id="pce-data">
+    </div>
+    <div class="campo-modal">
+      <label for="pce-juros">Juros (R$, opcional)</label>
+      <input type="number" id="pce-juros" step="0.01" min="0" placeholder="0,00">
+    </div>
+    <div class="sans" id="pce-resumo" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;background:var(--sage);padding:8px 10px;border-radius:6px;"></div>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-cancelar-pagar-cheque-especial">Cancelar</button>
+      <button class="confirmar" id="btn-confirmar-pagar-cheque-especial">Confirmar pagamento</button>
     </div>
   </div>
 </div>
@@ -829,9 +874,12 @@ let categorias = [];
 let pessoas = [];
 let cartoes = [];
 let pagamentosFatura = [];
+let limiteChequeEspecial = 0;
+let chequeEspecialDocId = null;
 let cartaoSelecionadoFaturaId = null;
 let offsetCicloFatura = 0;
 let faturaPagamentoPendente = null;
+let chequeEspecialPagamentoPendente = false;
 let lancamentos = []; // todos, carregados uma vez
 let mesReferencia = new Date(); mesReferencia.setDate(1);
 let mesRelatorio = new Date(); mesRelatorio.setDate(1);
@@ -982,12 +1030,13 @@ async function excluirDocumento(colecao, id){
 async function carregarTudo(){
   $all('.painel').forEach(p=>{ if(!p.classList.contains('ativa')) return; });
   main_mostrarCarregando(true);
-  const [cats, lancs, cards, pagsFatura, pess] = await Promise.all([
+  const [cats, lancs, cards, pagsFatura, pess, cheEsp] = await Promise.all([
     listarDocumentos('categorias'),
     listarDocumentos('lancamentos'),
     listarDocumentos('cartoes'),
     listarDocumentos('pagamentosFatura'),
-    listarDocumentos('pessoas')
+    listarDocumentos('pessoas'),
+    listarDocumentos('chequeEspecial')
   ]);
   if(cats.length === 0){
     // primeira vez: cria categorias padrão
@@ -1017,6 +1066,14 @@ async function carregarTudo(){
     pessoas = pess;
   }
   pagamentosFatura = pagsFatura;
+  if(cheEsp.length === 0){
+    const criado = await criarDocumento('chequeEspecial', {limite: 0});
+    chequeEspecialDocId = criado.name.split('/').pop();
+    limiteChequeEspecial = 0;
+  } else {
+    chequeEspecialDocId = cheEsp[0].id;
+    limiteChequeEspecial = Number(cheEsp[0].limite || 0);
+  }
   lancamentos = lancs.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
   main_mostrarCarregando(false);
   preencherSelectsCategoria();
@@ -1048,6 +1105,7 @@ function renderizarTudo(){
   renderizarInsights();
   renderizarGastoPorPessoa();
   renderizarGastoPorCartao();
+  renderizarChequeEspecial();
   renderizarCategorias();
   renderizarPessoas();
   renderizarCartoes();
@@ -1156,6 +1214,9 @@ function renderizarListaLancamentos(){
       const tagFin = document.createElement('span'); tagFin.className='tag';
       tagFin.textContent = 'Financiamento' + (Number(l.parcelaTotal)>1 ? ' • '+l.parcelaAtual+'/'+l.parcelaTotal : '');
       meta.appendChild(tagFin);
+    } else if(l.formaPagamento === 'cheque_especial'){
+      const tagCE = document.createElement('span'); tagCE.className='tag'; tagCE.textContent = 'Cheque especial';
+      meta.appendChild(tagCE);
     }
     esq.appendChild(desc); esq.appendChild(meta);
 
@@ -1465,6 +1526,47 @@ function renderizarGastoPorCartao(){
     linha.appendChild(cab); linha.appendChild(fundo);
     container.appendChild(linha);
   });
+}
+
+function calcularUsoChequeEspecial(){
+  return lancamentos
+    .filter(l=> l.tipo==='despesa' && l.formaPagamento==='cheque_especial' && !ehPago(l))
+    .reduce((s,l)=>s+Number(l.valor||0),0);
+}
+
+function renderizarChequeEspecial(){
+  const ajusteEl = $('#ajuste-limite-cheque-especial');
+  if(ajusteEl) ajusteEl.textContent = formatarMoeda(limiteChequeEspecial);
+
+  const bloco = $('#bloco-cheque-especial');
+  const usado = calcularUsoChequeEspecial();
+  if(!bloco) return;
+  if(limiteChequeEspecial<=0 && usado<=0){ bloco.style.display = 'none'; return; }
+  bloco.style.display = 'block';
+
+  const disponivel = Math.max(0, limiteChequeEspecial - usado);
+  const pct = limiteChequeEspecial>0 ? Math.min(100, (usado/limiteChequeEspecial*100)) : (usado>0 ? 100 : 0);
+
+  const resumo = $('#cheque-especial-resumo');
+  resumo.innerHTML = '';
+  const linhas = [
+    ['Usado', usado, 'var(--rose)'],
+    ['Limite', limiteChequeEspecial, 'var(--ink)'],
+    ['Disponível', disponivel, 'var(--forest)']
+  ];
+  linhas.forEach(([label,valor,cor])=>{
+    const linha = document.createElement('div'); linha.className='config-linha';
+    const sp1 = document.createElement('span'); sp1.textContent = label;
+    const sp2 = document.createElement('span'); sp2.style.cssText='font-weight:600;color:'+cor+';'; sp2.textContent = formatarMoeda(valor);
+    linha.appendChild(sp1); linha.appendChild(sp2);
+    resumo.appendChild(linha);
+  });
+  const barra = $('#cheque-especial-barra');
+  barra.style.width = pct+'%';
+  barra.style.background = pct>=90 ? 'var(--rose)' : 'var(--forest)';
+
+  const btnPagar = $('#btn-pagar-cheque-especial');
+  btnPagar.style.display = usado>0 ? 'block' : 'none';
 }
 
 function renderizarCategorias(){
@@ -1802,6 +1904,97 @@ async function confirmarPagamentoFatura(){
   btn.disabled = false; btn.textContent = 'Confirmar pagamento';
 }
 
+async function garantirCategoriaJurosChequeEspecial(){
+  const nome = 'Juros de Cheque Especial';
+  const existente = categorias.find(c=> c.nome.toLowerCase()===nome.toLowerCase());
+  if(existente) return existente.nome;
+  const criado = await criarDocumento('categorias', {nome});
+  const id = criado.name.split('/').pop();
+  categorias.push({id, nome});
+  preencherSelectsCategoria();
+  return nome;
+}
+
+async function salvarLimiteChequeEspecial(){
+  const valor = parseFloat($('#input-limite-cheque-especial').value);
+  if(isNaN(valor) || valor<0){ mostrarToast('Informe um limite válido.'); return; }
+  const btn = $('#btn-salvar-limite-cheque-especial');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try{
+    await atualizarDocumento('chequeEspecial', chequeEspecialDocId, {limite: valor});
+    limiteChequeEspecial = valor;
+    $('#input-limite-cheque-especial').value = '';
+    renderizarChequeEspecial();
+    mostrarToast('Limite do cheque especial atualizado.');
+  }catch(e){
+    mostrarToast('Não foi possível salvar o limite. Verifique a conexão.');
+  }
+  btn.disabled = false; btn.textContent = 'Salvar limite';
+}
+
+function pendentesChequeEspecial(){
+  return lancamentos.filter(l=> l.tipo==='despesa' && l.formaPagamento==='cheque_especial' && !ehPago(l));
+}
+
+function abrirModalPagarChequeEspecial(){
+  const pendentes = pendentesChequeEspecial();
+  if(pendentes.length===0){ mostrarToast('Não há uso do cheque especial em aberto.'); return; }
+  const totalUsado = pendentes.reduce((s,l)=>s+Number(l.valor||0),0);
+  chequeEspecialPagamentoPendente = true;
+  $('#texto-pagar-cheque-especial').textContent = 'Uso em aberto do cheque especial: '+pendentes.length+' lançamento(s), totalizando '+formatarMoeda(totalUsado)+'.';
+  $('#pce-data').value = new Date().toISOString().slice(0,10);
+  $('#pce-juros').value = '';
+  atualizarResumoPagamentoChequeEspecial();
+  $('#modal-pagar-cheque-especial').classList.add('ativo');
+}
+function fecharModalPagarChequeEspecial(){ $('#modal-pagar-cheque-especial').classList.remove('ativo'); chequeEspecialPagamentoPendente = false; }
+function atualizarResumoPagamentoChequeEspecial(){
+  if(!chequeEspecialPagamentoPendente) return;
+  const totalUsado = pendentesChequeEspecial().reduce((s,l)=>s+Number(l.valor||0),0);
+  const juros = parseFloat($('#pce-juros').value)||0;
+  $('#pce-resumo').textContent = 'Total a pagar (uso + juros): '+formatarMoeda(totalUsado+juros);
+}
+
+async function confirmarPagamentoChequeEspecial(){
+  if(!chequeEspecialPagamentoPendente) return;
+  const pendentes = pendentesChequeEspecial();
+  if(pendentes.length===0){ fecharModalPagarChequeEspecial(); return; }
+  const dataPagamento = $('#pce-data').value;
+  const juros = parseFloat($('#pce-juros').value)||0;
+  if(!dataPagamento){ mostrarToast('Informe a data do pagamento.'); return; }
+
+  const btn = $('#btn-confirmar-pagar-cheque-especial');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try{
+    for(const l of pendentes){
+      const payload = Object.assign({}, l, {pago:true});
+      delete payload.id;
+      await atualizarDocumento('lancamentos', l.id, payload);
+      const idx = lancamentos.findIndex(x=>x.id===l.id);
+      if(idx>-1) lancamentos[idx] = Object.assign({}, lancamentos[idx], {pago:true});
+    }
+    if(juros>0){
+      const nomeCategoria = await garantirCategoriaJurosChequeEspecial();
+      const payloadJuros = {
+        descricao: 'Juros do cheque especial ('+formatarDataCurta(dataISOparaData(dataPagamento))+')',
+        valor: juros, data: dataPagamento, categoria: nomeCategoria, pessoa: pessoaAtual||'Wendel',
+        tipo:'despesa', formaPagamento:'dinheiro', cartao:'', parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+        pago: true
+      };
+      const criado = await criarDocumento('lancamentos', payloadJuros);
+      const id = criado.name.split('/').pop();
+      lancamentos.unshift(Object.assign({id}, payloadJuros));
+    }
+    lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+    fecharModalPagarChequeEspecial();
+    renderizarTudo();
+    mostrarToast('Pagamento do cheque especial registrado.');
+  }catch(e){
+    mostrarToast('Não foi possível registrar o pagamento. Verifique a conexão.');
+  }
+  btn.disabled = false; btn.textContent = 'Confirmar pagamento';
+}
+
 /* =========================================================================
    RELATÓRIOS
 ========================================================================= */
@@ -2054,6 +2247,9 @@ function renderizarDiaSelecionado(){
       meta.appendChild(t);
     } else if(l.formaPagamento==='financiamento'){
       const t = document.createElement('span'); t.className='tag'; t.textContent = 'Financiamento'+(Number(l.parcelaTotal)>1?' • '+l.parcelaAtual+'/'+l.parcelaTotal:'');
+      meta.appendChild(t);
+    } else if(l.formaPagamento==='cheque_especial'){
+      const t = document.createElement('span'); t.className='tag'; t.textContent = 'Cheque especial';
       meta.appendChild(t);
     }
     const pago = ehPago(l);
@@ -2542,6 +2738,12 @@ $('#btn-cancelar-pagar-fatura').addEventListener('click', fecharModalPagarFatura
 $('#btn-confirmar-pagar-fatura').addEventListener('click', confirmarPagamentoFatura);
 $('#pf-juros').addEventListener('input', atualizarResumoPagamentoFatura);
 $('#pf-taxas').addEventListener('input', atualizarResumoPagamentoFatura);
+
+$('#btn-pagar-cheque-especial').addEventListener('click', abrirModalPagarChequeEspecial);
+$('#btn-cancelar-pagar-cheque-especial').addEventListener('click', fecharModalPagarChequeEspecial);
+$('#btn-confirmar-pagar-cheque-especial').addEventListener('click', confirmarPagamentoChequeEspecial);
+$('#pce-juros').addEventListener('input', atualizarResumoPagamentoChequeEspecial);
+$('#btn-salvar-limite-cheque-especial').addEventListener('click', salvarLimiteChequeEspecial);
 
 $('#btn-cancelar-juros-atraso').addEventListener('click', fecharModalJurosAtraso);
 $('#btn-confirmar-juros-atraso').addEventListener('click', confirmarPagamentoComJuros);
