@@ -1109,9 +1109,20 @@ function main_mostrarCarregando(ligado){
 /* =========================================================================
    RENDERIZAÇÃO
 ========================================================================= */
+function mesEfetivoLancamento(l){
+  // Enquanto um lançamento pendente estiver vencido (mês anterior ao atual),
+  // ele "rola" e passa a contar no mês corrente como item em aberto, até ser
+  // marcado como pago — em vez de ficar parado no mês em que foi lançado.
+  const chaveLanc = (l.data||'').slice(0,7);
+  if(!ehPago(l)){
+    const chaveHoje = chaveMes(new Date());
+    if(chaveLanc && chaveLanc < chaveHoje) return chaveHoje;
+  }
+  return chaveLanc;
+}
 function lancamentosDoMes(dataRef){
   const chave = chaveMes(dataRef);
-  return lancamentos.filter(l => (l.data||'').startsWith(chave));
+  return lancamentos.filter(l => mesEfetivoLancamento(l) === chave);
 }
 
 function renderizarTudo(){
@@ -1134,7 +1145,7 @@ function renderizarTudo(){
 function capitalizar(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
 function renderizarResumo(){
-  const doMes = lancamentosDoMes(mesReferencia).filter(ehPago);
+  const doMes = lancamentosDoMes(mesReferencia);
   const receitas = doMes.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
   const despesas = doMes.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
   $('#res-receitas').textContent = formatarMoeda(receitas);
@@ -1144,7 +1155,7 @@ function renderizarResumo(){
 
 function renderizarRankingCategorias(){
   const container = $('#ranking-categorias');
-  const doMes = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa' && ehPago(l));
+  const doMes = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa');
   if(doMes.length===0){ container.innerHTML = '<div class="vazio">Sem despesas lançadas neste mês.</div>'; return; }
   const porCategoria = {};
   doMes.forEach(l=>{ porCategoria[l.categoria] = (porCategoria[l.categoria]||0) + Number(l.valor||0); });
@@ -1176,7 +1187,7 @@ function renderizarTendencia(){
     meses.push(d);
   }
   const valoresPorMes = meses.map(d=>{
-    const doMes = lancamentosDoMes(d).filter(ehPago);
+    const doMes = lancamentosDoMes(d);
     return {
       receita: doMes.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0),
       despesa: doMes.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0),
@@ -1452,12 +1463,12 @@ function formatarDataExibicao(iso){
 
 function renderizarInsights(){
   const container = $('#lista-insights');
-  const mesAtualDados = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa' && ehPago(l));
+  const mesAtualDados = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa');
   // média das despesas por categoria nos 3 meses anteriores
   const mediasAnteriores = {};
   for(let i=1;i<=3;i++){
     const d = new Date(mesReferencia.getFullYear(), mesReferencia.getMonth()-i, 1);
-    lancamentosDoMes(d).filter(l=>l.tipo==='despesa' && ehPago(l)).forEach(l=>{
+    lancamentosDoMes(d).filter(l=>l.tipo==='despesa').forEach(l=>{
       mediasAnteriores[l.categoria] = (mediasAnteriores[l.categoria]||0) + Number(l.valor||0);
     });
   }
@@ -1483,7 +1494,7 @@ function renderizarInsights(){
     insights.unshift({tipo:'info', texto:`A maior despesa do mês é com <b>${escaparHTML(ordenadoTotal[0][0])}</b>, totalizando ${formatarMoeda(ordenadoTotal[0][1])}.`});
   }
   const totalDespesas = mesAtualDados.reduce((s,l)=>s+Number(l.valor||0),0);
-  const totalReceitas = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='receita' && ehPago(l)).reduce((s,l)=>s+Number(l.valor||0),0);
+  const totalReceitas = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
   if(totalReceitas>0 && totalDespesas > totalReceitas){
     insights.unshift({tipo:'alerta', texto:`Este mês as despesas (${formatarMoeda(totalDespesas)}) ultrapassaram as receitas (${formatarMoeda(totalReceitas)}). O saldo do mês está negativo.`});
   }
@@ -1501,7 +1512,7 @@ function renderizarInsights(){
 
 function renderizarGastoPorPessoa(){
   const container = $('#gasto-por-pessoa');
-  const doMes = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa' && ehPago(l));
+  const doMes = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa');
   if(doMes.length===0){ container.innerHTML = '<div class="vazio">Sem despesas lançadas neste mês.</div>'; return; }
   const porPessoa = {};
   doMes.forEach(l=>{ const p = l.pessoa||'—'; porPessoa[p] = (porPessoa[p]||0)+Number(l.valor||0); });
@@ -2361,7 +2372,7 @@ function renderizarRelatorioMensal(){
   if(!rotulo) return;
   rotulo.textContent = capitalizar(nomeMes(mesRelatorio));
 
-  const doMes = lancamentosDoMes(mesRelatorio).filter(ehPago);
+  const doMes = lancamentosDoMes(mesRelatorio);
   const receitas = doMes.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
   const despesas = doMes.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
 
