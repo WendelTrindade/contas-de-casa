@@ -558,6 +558,11 @@
         <div id="fatura-acoes-compras"></div>
         <div id="fatura-lista-compras"></div>
       </div>
+      <div class="bloco" id="bloco-fatura-futuras" style="display:none;">
+        <h2>Compras futuras programadas<span class="sub">Ainda não chegaram na fatura, mas já abatem do limite disponível</span></h2>
+        <div id="fatura-resumo-futuras" class="gasto-ciclo"></div>
+        <div id="fatura-lista-futuras"></div>
+      </div>
     </section>
 
     <!-- CHEQUE ESPECIAL -->
@@ -718,7 +723,37 @@
       <label for="m-conta-cheque-especial">Conta / banco</label>
       <select id="m-conta-cheque-especial"><option value="">Selecione a conta</option></select>
     </div>
+    <div class="linha-2" id="campo-datas-extras" style="display:none;">
+      <div class="campo-modal">
+        <label for="m-data-vencimento">Data de vencimento (opcional)</label>
+        <input type="date" id="m-data-vencimento">
+      </div>
+      <div class="campo-modal">
+        <label for="m-data-referencia">Data de referência (opcional)</label>
+        <input type="month" id="m-data-referencia">
+      </div>
+    </div>
     <div class="sans" id="dica-financiamento" style="display:none;font-size:0.78rem;color:var(--ink-soft);margin-top:-8px;margin-bottom:14px;">Todas as parcelas restantes (da atual até o total) já são lançadas de uma vez, uma por mês.</div>
+    <div class="campo-modal" id="campo-recorrente">
+      <label class="sans" style="font-size:0.85rem;display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="m-recorrente"> Lançamento recorrente (se repete todo mês)
+      </label>
+      <div class="linha-2" id="campo-recorrencia-meses" style="display:none;margin-top:10px;">
+        <div class="campo-modal">
+          <label for="m-recorrencia-meses">Repetir por quantos meses</label>
+          <input type="number" id="m-recorrencia-meses" min="2" max="60" value="12">
+        </div>
+        <div class="campo-modal">
+          <label for="m-tipo-recorrencia">Tipo de recorrência</label>
+          <select id="m-tipo-recorrencia">
+            <option value="fixo">Valor fixo todo mês</option>
+            <option value="assinatura">Assinatura (valor varia, ex: água/energia)</option>
+          </select>
+        </div>
+      </div>
+      <div class="sans" id="dica-recorrente" style="display:none;font-size:0.78rem;color:var(--ink-soft);margin-top:4px;"></div>
+      <div class="sans" id="info-recorrencia-existente" style="display:none;font-size:0.8rem;color:var(--ink-soft);background:var(--sage);padding:8px 10px;border-radius:6px;margin-top:8px;"></div>
+    </div>
     <div class="sans" id="info-parcela-existente" style="display:none;font-size:0.8rem;color:var(--ink-soft);background:var(--sage);padding:8px 10px;border-radius:6px;margin-bottom:14px;"></div>
     <div class="sans" id="ajuda-valor-parcela" style="display:none;font-size:0.78rem;color:var(--ink-soft);margin-top:-8px;margin-bottom:14px;"></div>
     <div class="acoes-modal">
@@ -1214,7 +1249,7 @@ function renderizarListaLancamentos(){
   const catFiltro = $('#filtro-categoria').value;
   const tipoFiltro = $('#filtro-tipo').value;
   const statusFiltro = $('#filtro-status').value;
-  let doMes = lancamentosDoMes(mesReferencia);
+  let doMes = busca ? lancamentos.slice() : lancamentosDoMes(mesReferencia);
   if(busca) doMes = doMes.filter(l=> (l.descricao||'').toLowerCase().includes(busca));
   if(catFiltro) doMes = doMes.filter(l=> l.categoria === catFiltro);
   if(tipoFiltro) doMes = doMes.filter(l=> l.tipo === tipoFiltro);
@@ -1222,6 +1257,11 @@ function renderizarListaLancamentos(){
   if(statusFiltro==='pendente') doMes = doMes.filter(l=>!ehPago(l));
   container.innerHTML = '';
   if(doMes.length===0){ container.innerHTML = '<div class="vazio">Nenhum lançamento encontrado.</div>'; return; }
+  if(busca){
+    const aviso = document.createElement('div'); aviso.className='vazio'; aviso.style.cssText='padding:4px 0 10px;font-size:0.78rem;';
+    aviso.textContent = 'Mostrando resultados de todos os meses para "'+($('#busca-lancamento').value||'')+'" ('+doMes.length+' encontrado'+(doMes.length>1?'s':'')+').';
+    container.appendChild(aviso);
+  }
   doMes.forEach(l=>{
     const item = document.createElement('div'); item.className='item-lancamento';
     const esq = document.createElement('div'); esq.className='esq';
@@ -1245,6 +1285,18 @@ function renderizarListaLancamentos(){
     } else if(l.formaPagamento === 'cheque_especial'){
       const tagCE = document.createElement('span'); tagCE.className='tag'; tagCE.textContent = 'Cheque especial'+(l.contaChequeEspecial?' • '+l.contaChequeEspecial:'');
       meta.appendChild(tagCE);
+    }
+    if(l.recorrente && Number(l.parcelaTotal)>1){
+      const tagRec = document.createElement('span'); tagRec.className='tag'; tagRec.textContent = (l.tipoRecorrencia==='assinatura' ? 'Assinatura • ' : 'Recorrente • ')+l.parcelaAtual+'/'+l.parcelaTotal;
+      meta.appendChild(tagRec);
+    }
+    if(l.dataVencimento){
+      const tagVenc = document.createElement('span'); tagVenc.className='tag'; tagVenc.textContent = 'Vence '+formatarDataExibicao(l.dataVencimento);
+      meta.appendChild(tagVenc);
+    }
+    if(l.dataReferencia){
+      const tagRef = document.createElement('span'); tagRef.className='tag'; tagRef.textContent = 'Ref. '+formatarMesReferencia(l.dataReferencia);
+      meta.appendChild(tagRef);
     }
     esq.appendChild(desc); esq.appendChild(meta);
 
@@ -1459,6 +1511,11 @@ function formatarDataExibicao(iso){
   if(!iso) return '';
   const [a,m,d] = iso.split('-');
   return d+'/'+m;
+}
+function formatarMesReferencia(iso){
+  if(!iso) return '';
+  const [a,m] = iso.split('-');
+  return m+'/'+a;
 }
 
 function renderizarInsights(){
@@ -1965,6 +2022,11 @@ function criarBlocoLimiteCartao(cartao){
   fundo.appendChild(barra);
   wrap.appendChild(fundo);
 
+  const dicaUso = document.createElement('div'); dicaUso.className='sans';
+  dicaUso.style.cssText = 'font-size:0.75rem;color:var(--ink-soft);margin-top:6px;';
+  dicaUso.textContent = '"Usado" já soma todas as compras pendentes deste cartão, inclusive parcelas e despesas futuras ainda não pagas — não só a fatura deste mês.';
+  wrap.appendChild(dicaUso);
+
   const campoLimite = document.createElement('div'); campoLimite.className='campo-modal'; campoLimite.style.cssText='margin-top:12px;';
   const labelLimite = document.createElement('label'); labelLimite.textContent = 'Novo limite de crédito (R$)';
   const inputLimite = document.createElement('input'); inputLimite.type='number'; inputLimite.step='0.01'; inputLimite.min='0'; inputLimite.placeholder='0,00'; inputLimite.id='input-editar-limite-cartao'; inputLimite.value = cartao.limite || '';
@@ -1998,7 +2060,7 @@ function renderizarDetalheFatura(){
   const cartao = cartoes.find(c=>c.id===cartaoSelecionadoFaturaId);
   const blocoDetalhe = $('#bloco-fatura-detalhe');
   const blocoCompras = $('#bloco-fatura-compras');
-  if(!cartao){ blocoDetalhe.style.display='none'; blocoCompras.style.display='none'; return; }
+  if(!cartao){ blocoDetalhe.style.display='none'; blocoCompras.style.display='none'; $('#bloco-fatura-futuras').style.display='none'; return; }
   blocoDetalhe.style.display = 'block';
 
   const topo = document.createElement('div'); topo.className='linha-topo';
@@ -2013,6 +2075,7 @@ function renderizarDetalheFatura(){
 
   if(!cartao.diaFechamento || !cartao.diaVencimento){
     blocoCompras.style.display = 'none';
+    $('#bloco-fatura-futuras').style.display = 'none';
     $('#fatura-rotulo-ciclo').textContent = '—';
     const statusEl = $('#fatura-status');
     statusEl.innerHTML = '';
@@ -2110,10 +2173,15 @@ function renderizarDetalheFatura(){
   const acoesCompras = $('#fatura-acoes-compras');
   acoesCompras.innerHTML = '';
   const btnNovaCompra = document.createElement('button');
-  btnNovaCompra.className = 'btn-secundario'; btnNovaCompra.style.cssText = 'width:100%;margin-bottom:12px;';
+  btnNovaCompra.className = 'btn-secundario'; btnNovaCompra.style.cssText = 'width:100%;margin-bottom:8px;';
   btnNovaCompra.textContent = '+ Lançar compra nesta fatura';
   btnNovaCompra.addEventListener('click', ()=>abrirModalNovaCompraFatura(cartao, ciclo));
   acoesCompras.appendChild(btnNovaCompra);
+  const btnDespesaFutura = document.createElement('button');
+  btnDespesaFutura.className = 'btn-secundario'; btnDespesaFutura.style.cssText = 'width:100%;margin-bottom:12px;';
+  btnDespesaFutura.textContent = '+ Lançar despesa futura (planejamento)';
+  btnDespesaFutura.addEventListener('click', ()=>abrirModalNovaDespesaFuturaCartao(cartao));
+  acoesCompras.appendChild(btnDespesaFutura);
 
   const listaEl = $('#fatura-lista-compras');
   listaEl.innerHTML = '';
@@ -2143,6 +2211,44 @@ function renderizarDetalheFatura(){
       listaEl.appendChild(item);
     });
   }
+
+  const hojeData = new Date();
+  const futuras = lancamentos.filter(l=>
+    l.tipo==='despesa' && l.formaPagamento==='credito' && l.cartao===cartao.nome &&
+    !ehPago(l) && dataISOparaData(l.data) > hojeData
+  ).sort((a,b)=> a.data.localeCompare(b.data));
+  const blocoFuturas = $('#bloco-fatura-futuras');
+  if(futuras.length===0){
+    blocoFuturas.style.display = 'none';
+  } else {
+    blocoFuturas.style.display = 'block';
+    const totalFuturas = futuras.reduce((s,l)=>s+Number(l.valor||0),0);
+    $('#fatura-resumo-futuras').textContent = 'Total já programado: '+formatarMoeda(totalFuturas);
+    const listaFuturasEl = $('#fatura-lista-futuras');
+    listaFuturasEl.innerHTML = '';
+    futuras.forEach(l=>{
+      const item = document.createElement('div'); item.className='fatura-compra-item';
+      const esq = document.createElement('div');
+      const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
+      const meta = document.createElement('div'); meta.className='meta';
+      meta.textContent = formatarDataExibicao(l.data)+' • '+(l.categoria||'Outros')+' • '+(l.pessoa||'—')
+        + (Number(l.parcelaTotal)>1 ? ' • '+l.parcelaAtual+'/'+l.parcelaTotal : '');
+      esq.appendChild(desc); esq.appendChild(meta);
+      const dir = document.createElement('div'); dir.className='dir';
+      const val = document.createElement('div'); val.className='val'; val.textContent = formatarMoeda(l.valor);
+      const acoes = document.createElement('div'); acoes.className='acoes';
+      const btnEditarCompra = document.createElement('button'); btnEditarCompra.textContent='✎';
+      btnEditarCompra.title = 'Editar esta despesa futura';
+      btnEditarCompra.addEventListener('click', ()=>abrirModalLancamento(l));
+      const btnExcluirCompra = document.createElement('button'); btnExcluirCompra.textContent='✕';
+      btnExcluirCompra.title = 'Excluir esta despesa futura';
+      btnExcluirCompra.addEventListener('click', ()=>confirmarExcluirCompraFatura(l));
+      acoes.appendChild(btnEditarCompra); acoes.appendChild(btnExcluirCompra);
+      dir.appendChild(val); dir.appendChild(acoes);
+      item.appendChild(esq); item.appendChild(dir);
+      listaFuturasEl.appendChild(item);
+    });
+  }
 }
 
 function confirmarExcluirCompraFatura(l){
@@ -2166,6 +2272,18 @@ function abrirModalNovaCompraFatura(cartao, ciclo){
   const hoje = new Date();
   const dataPadrao = (hoje >= ciclo.inicio && hoje <= ciclo.fim) ? hoje : ciclo.fim;
   $('#m-data').value = isoDeData(dataPadrao);
+}
+
+function abrirModalNovaDespesaFuturaCartao(cartao){
+  abrirModalLancamento();
+  selecionarTipoModal('despesa');
+  $('#m-forma').value = 'credito';
+  $('#m-cartao').value = cartao.nome;
+  atualizarVisibilidadeFormaPagamento();
+  const hoje = new Date();
+  const sugestao = new Date(hoje.getFullYear(), hoje.getMonth()+1, hoje.getDate());
+  $('#m-data').value = isoDeData(sugestao);
+  mostrarToast('Escolha a data da despesa futura — ela já vai abater do limite disponível deste cartão.');
 }
 
 async function garantirCategoriaJurosTaxas(){
@@ -2701,19 +2819,34 @@ function abrirModalLancamento(lancamentoExistente){
   $('#m-forma').value = lancamentoExistente ? (lancamentoExistente.formaPagamento||'dinheiro') : 'dinheiro';
   $('#m-cartao').value = lancamentoExistente ? (lancamentoExistente.cartao||'') : '';
   $('#m-conta-cheque-especial').value = lancamentoExistente ? (lancamentoExistente.contaChequeEspecial||'') : '';
+  $('#m-data-vencimento').value = lancamentoExistente ? (lancamentoExistente.dataVencimento||'') : '';
+  $('#m-data-referencia').value = lancamentoExistente ? (lancamentoExistente.dataReferencia||'') : '';
   $('#m-parcelas').value = 1;
   $('#m-fin-parcela-atual').value = (lancamentoExistente && lancamentoExistente.formaPagamento==='financiamento') ? (lancamentoExistente.parcelaAtual||'') : '';
   $('#m-fin-parcela-total').value = (lancamentoExistente && lancamentoExistente.formaPagamento==='financiamento') ? (lancamentoExistente.parcelaTotal||'') : '';
+  $('#m-recorrente').checked = false;
+  $('#m-recorrencia-meses').value = 12;
+  $('#m-tipo-recorrencia').value = 'fixo';
+  $('#campo-recorrencia-meses').style.display = 'none';
+  $('#dica-recorrente').style.display = 'none';
 
-  const ehParcelaGrupoExistente = !!(lancamentoExistente && (lancamentoExistente.formaPagamento==='credito' || lancamentoExistente.formaPagamento==='financiamento') && Number(lancamentoExistente.parcelaTotal) > 1);
+  const ehParcelaGrupoExistente = !!(lancamentoExistente && !lancamentoExistente.recorrente && (lancamentoExistente.formaPagamento==='credito' || lancamentoExistente.formaPagamento==='financiamento') && Number(lancamentoExistente.parcelaTotal) > 1);
+  const ehRecorrenciaExistente = !!(lancamentoExistente && lancamentoExistente.recorrente && Number(lancamentoExistente.parcelaTotal) > 1);
+  const ehAssinaturaExistente = ehRecorrenciaExistente && lancamentoExistente.tipoRecorrencia === 'assinatura';
   $('#campo-parcelas').style.display = lancamentoExistente ? 'none' : 'block';
+  $('#campo-recorrente').style.display = lancamentoExistente ? 'none' : 'block';
   $('#info-parcela-existente').style.display = ehParcelaGrupoExistente ? 'block' : 'none';
   $('#info-parcela-existente').textContent = ehParcelaGrupoExistente
     ? ('Parcela '+lancamentoExistente.parcelaAtual+' de '+lancamentoExistente.parcelaTotal+'.')
     : '';
-  const podeExcluirFuturas = ehParcelaGrupoExistente && lancamentoExistente.grupoParcelaId &&
+  $('#info-recorrencia-existente').style.display = ehRecorrenciaExistente ? 'block' : 'none';
+  $('#info-recorrencia-existente').textContent = ehRecorrenciaExistente
+    ? ((ehAssinaturaExistente ? 'Assinatura' : 'Recorrência')+': mês '+lancamentoExistente.parcelaAtual+' de '+lancamentoExistente.parcelaTotal+(ehAssinaturaExistente ? ' (valor pode variar a cada mês).' : '.'))
+    : '';
+  const podeExcluirFuturas = (ehParcelaGrupoExistente || ehRecorrenciaExistente) && lancamentoExistente.grupoParcelaId &&
     Number(lancamentoExistente.parcelaAtual) < Number(lancamentoExistente.parcelaTotal);
   $('#linha-excluir-futuras').style.display = podeExcluirFuturas ? 'flex' : 'none';
+  $('#btn-excluir-futuras').textContent = ehRecorrenciaExistente ? 'Excluir esta e as próximas repetições' : 'Excluir esta e as parcelas futuras';
 
   selecionarTipoModal(lancamentoExistente ? lancamentoExistente.tipo : 'despesa');
   selecionarPagoModal(lancamentoExistente ? (ehPago(lancamentoExistente) ? 'pago' : 'pendente') : 'pendente');
@@ -2726,6 +2859,7 @@ function selecionarTipoModal(tipo){
   $('#tipo-receita').classList.toggle('sel-receita', tipo==='receita');
   $('#tipo-despesa').classList.toggle('sel-despesa', tipo==='despesa');
   $('#campo-forma-pagamento').style.display = tipo==='despesa' ? 'block' : 'none';
+  $('#campo-datas-extras').style.display = tipo==='despesa' ? 'flex' : 'none';
   if(tipo==='receita'){ $('#m-forma').value='dinheiro'; }
   atualizarVisibilidadeFormaPagamento();
 }
@@ -2744,6 +2878,26 @@ function atualizarVisibilidadeFormaPagamento(){
   $('#campo-cheque-especial').style.display = mostrarChequeEspecial ? 'block' : 'none';
   $('#dica-financiamento').style.display = mostrarFinanciamento ? 'block' : 'none';
   if(!mostrarCredito) $('#ajuda-valor-parcela').style.display = 'none';
+  if(!modoEdicaoId){
+    $('#campo-recorrente').style.display = mostrarFinanciamento ? 'none' : 'block';
+    if(mostrarFinanciamento){ $('#m-recorrente').checked = false; $('#campo-recorrencia-meses').style.display='none'; $('#dica-recorrente').style.display='none'; }
+  }
+  atualizarAjudaValorParcela();
+}
+function atualizarVisibilidadeRecorrencia(){
+  const marcado = $('#m-recorrente').checked;
+  $('#campo-recorrencia-meses').style.display = marcado ? 'flex' : 'none';
+  $('#dica-recorrente').style.display = marcado ? 'block' : 'none';
+  if(marcado){
+    $('#m-parcelas').value = 1;
+    $('#campo-parcelas').style.display = 'none';
+    const ehAssinatura = $('#m-tipo-recorrencia').value === 'assinatura';
+    $('#dica-recorrente').textContent = ehAssinatura
+      ? 'O mês atual e os seguintes já são lançados de uma vez, como pendentes. Como o valor varia (ex: água, energia), edite cada mês com o valor certo quando a conta chegar — o sistema não vai perguntar se quer igualar os outros meses. Depois do último mês, para de se repetir; se quiser continuar, é só criar de novo.'
+      : 'O mês atual e os seguintes já são lançados de uma vez, todos com o mesmo valor. Depois do último mês, o lançamento para de se repetir — se quiser continuar, é só criar de novo.';
+  } else if($('#m-forma').value==='credito' && !modoEdicaoId){
+    $('#campo-parcelas').style.display = 'block';
+  }
   atualizarAjudaValorParcela();
 }
 function atualizarAjudaValorParcela(){
@@ -2768,7 +2922,12 @@ async function salvarLancamento(){
   const formaPagamento = tipoSelecionadoModal==='despesa' ? $('#m-forma').value : 'dinheiro';
   const cartao = formaPagamento==='credito' ? $('#m-cartao').value : '';
   const contaChequeEspecial = formaPagamento==='cheque_especial' ? $('#m-conta-cheque-especial').value : '';
-  const parcelasParaGerar = (!modoEdicaoId && formaPagamento==='credito') ? Math.max(1, parseInt($('#m-parcelas').value||'1',10)) : 1;
+  const dataVencimento = tipoSelecionadoModal==='despesa' ? $('#m-data-vencimento').value : '';
+  const dataReferencia = tipoSelecionadoModal==='despesa' ? $('#m-data-referencia').value : '';
+  const recorrenteMarcado = !modoEdicaoId && formaPagamento!=='financiamento' && $('#m-recorrente').checked;
+  const mesesRecorrencia = recorrenteMarcado ? Math.max(2, Math.min(60, parseInt($('#m-recorrencia-meses').value||'12',10))) : 1;
+  const tipoRecorrencia = recorrenteMarcado ? $('#m-tipo-recorrencia').value : '';
+  const parcelasParaGerar = (!modoEdicaoId && !recorrenteMarcado && formaPagamento==='credito') ? Math.max(1, parseInt($('#m-parcelas').value||'1',10)) : 1;
 
   let parcelaAtualFin = 0, parcelaTotalFin = 0;
   if(formaPagamento==='financiamento'){
@@ -2798,6 +2957,9 @@ async function salvarLancamento(){
         parcelaAtual: formaPagamento==='financiamento' ? parcelaAtualFin : (existente.parcelaAtual || 1),
         parcelaTotal: formaPagamento==='financiamento' ? parcelaTotalFin : (existente.parcelaTotal || 1),
         grupoParcelaId: existente.grupoParcelaId || '',
+        recorrente: existente.recorrente || false,
+        tipoRecorrencia: existente.tipoRecorrencia || '',
+        dataVencimento, dataReferencia,
         pago: pagoSelecionadoModal==='pago'
       };
       await atualizarDocumento('lancamentos', modoEdicaoId, payload);
@@ -2805,7 +2967,7 @@ async function salvarLancamento(){
       if(idx>-1) lancamentos[idx] = Object.assign({id:modoEdicaoId}, payload);
 
       const valorMudou = Number(existente.valor||0) !== Number(valorDigitado);
-      if(valorMudou && existente.grupoParcelaId && Number(existente.parcelaTotal)>1){
+      if(valorMudou && existente.grupoParcelaId && Number(existente.parcelaTotal)>1 && existente.tipoRecorrencia!=='assinatura'){
         const futuras = lancamentos.filter(l=>
           l.grupoParcelaId===existente.grupoParcelaId &&
           Number(l.parcelaAtual) > Number(existente.parcelaAtual) &&
@@ -2822,6 +2984,7 @@ async function salvarLancamento(){
           descricao: descricao+' (parcela '+(i+1)+'/'+parcelasParaGerar+')',
           valor: valorDigitado, data: dataParcela, categoria, pessoa, tipo:'despesa',
           formaPagamento, cartao, contaChequeEspecial, parcelaAtual:i+1, parcelaTotal:parcelasParaGerar, grupoParcelaId:grupoId,
+          recorrente:false, dataVencimento:'', dataReferencia:'',
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
         };
         const criado = await criarDocumento('lancamentos', payload);
@@ -2839,6 +3002,22 @@ async function salvarLancamento(){
           descricao: descricao+' (parcela '+numeroParcela+'/'+parcelaTotalFin+')',
           valor: valorDigitado, data: dataParcela, categoria, pessoa, tipo:'despesa',
           formaPagamento, cartao:'', contaChequeEspecial:'', parcelaAtual:numeroParcela, parcelaTotal:parcelaTotalFin, grupoParcelaId:grupoId,
+          recorrente:false, dataVencimento:'', dataReferencia:'',
+          pago: i===0 ? (pagoSelecionadoModal==='pago') : false
+        };
+        const criado = await criarDocumento('lancamentos', payload);
+        const id = criado.name.split('/').pop();
+        lancamentos.push(Object.assign({id}, payload));
+      }
+    } else if(recorrenteMarcado){
+      const grupoId = gerarIdGrupo();
+      for(let i=0;i<mesesRecorrencia;i++){
+        btn.textContent = 'Salvando mês '+(i+1)+' de '+mesesRecorrencia+'...';
+        const dataRec = somarMeses(data, i);
+        const payload = {
+          descricao, valor: valorDigitado, data: dataRec, categoria, pessoa, tipo: tipoSelecionadoModal,
+          formaPagamento, cartao, contaChequeEspecial, parcelaAtual:i+1, parcelaTotal:mesesRecorrencia, grupoParcelaId:grupoId,
+          recorrente:true, tipoRecorrencia, dataVencimento, dataReferencia,
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
         };
         const criado = await criarDocumento('lancamentos', payload);
@@ -2849,6 +3028,7 @@ async function salvarLancamento(){
       const payload = {
         descricao, valor: valorDigitado, data, categoria, pessoa, tipo: tipoSelecionadoModal,
         formaPagamento, cartao, contaChequeEspecial, parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+        recorrente:false, dataVencimento, dataReferencia,
         pago: pagoSelecionadoModal==='pago'
       };
       const criado = await criarDocumento('lancamentos', payload);
@@ -2863,6 +3043,10 @@ async function salvarLancamento(){
     } else if(formaPagamento==='financiamento' && !modoEdicaoId){
       const qtd = parcelaTotalFin - parcelaAtualFin + 1;
       mostrarToast('Financiamento lançado: '+qtd+' parcelas programadas até '+formatarDataExibicao(somarMeses(data, qtd-1))+'.');
+    } else if(recorrenteMarcado && tipoRecorrencia==='assinatura'){
+      mostrarToast('Assinatura criada para os próximos '+mesesRecorrencia+' meses. Lembre de ajustar o valor de cada mês quando a conta chegar.');
+    } else if(recorrenteMarcado){
+      mostrarToast('Lançamento recorrente criado para os próximos '+mesesRecorrencia+' meses.');
     } else {
       mostrarToast('Lançamento salvo.');
     }
@@ -2906,9 +3090,12 @@ function confirmarExclusaoLancamento(){
 function confirmarExclusaoFuturas(){
   const atual = lancamentos.find(l=>l.id===modoEdicaoId);
   if(!atual || !atual.grupoParcelaId) return;
+  const ehRecorrencia = !!atual.recorrente;
   abrirConfirmacao(
-    'Excluir parcelas futuras',
-    'Isso vai excluir esta parcela e todas as parcelas futuras ainda não pagas desta mesma compra. As parcelas já passadas continuam no histórico. Deseja continuar?',
+    ehRecorrencia ? 'Excluir repetições futuras' : 'Excluir parcelas futuras',
+    ehRecorrencia
+      ? 'Isso vai excluir este mês e todos os meses seguintes ainda não pagos desta recorrência. Os meses já passados continuam no histórico. Deseja continuar?'
+      : 'Isso vai excluir esta parcela e todas as parcelas futuras ainda não pagas desta mesma compra. As parcelas já passadas continuam no histórico. Deseja continuar?',
     async ()=>{
       const doGrupo = lancamentos.filter(l=> l.grupoParcelaId===atual.grupoParcelaId && Number(l.parcelaAtual) >= Number(atual.parcelaAtual));
       for(const l of doGrupo){ await excluirDocumento('lancamentos', l.id); }
@@ -2916,7 +3103,7 @@ function confirmarExclusaoFuturas(){
       lancamentos = lancamentos.filter(l=>!idsExcluir.has(l.id));
       fecharModalLancamento();
       renderizarTudo();
-      mostrarToast('Parcelas futuras excluídas.');
+      mostrarToast(ehRecorrencia ? 'Repetições futuras excluídas.' : 'Parcelas futuras excluídas.');
     }
   );
 }
@@ -3148,6 +3335,8 @@ $('#btn-excluir-futuras').addEventListener('click', confirmarExclusaoFuturas);
 $('#m-forma').addEventListener('change', atualizarVisibilidadeFormaPagamento);
 $('#m-parcelas').addEventListener('input', atualizarAjudaValorParcela);
 $('#m-valor').addEventListener('input', atualizarAjudaValorParcela);
+$('#m-recorrente').addEventListener('change', atualizarVisibilidadeRecorrencia);
+$('#m-tipo-recorrencia').addEventListener('change', atualizarVisibilidadeRecorrencia);
 
 $('#btn-cancelar-confirmar').addEventListener('click', fecharConfirmacao);
 $('#btn-confirmar-confirmar').addEventListener('click', async ()=>{
