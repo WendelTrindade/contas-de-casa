@@ -1343,14 +1343,27 @@ async function listarDocumentos(colecao){
 }
 async function criarDocumento(colecao, campos){
   const resp = await chamarFirestore('/'+colecao, {method:'POST', body: JSON.stringify(paraCamposFirestore(campos))});
-  return resp.json();
+  const dados = await resp.json();
+  if(!resp.ok){
+    throw new Error((dados && dados.error && dados.error.message) || 'Não foi possível salvar no banco de dados. Verifique a conexão e tente novamente.');
+  }
+  return dados;
 }
 async function atualizarDocumento(colecao, id, campos){
   const resp = await chamarFirestore('/'+colecao+'/'+id, {method:'PATCH', body: JSON.stringify(paraCamposFirestore(campos))});
-  return resp.json();
+  const dados = await resp.json();
+  if(!resp.ok){
+    throw new Error((dados && dados.error && dados.error.message) || 'Não foi possível salvar no banco de dados. Verifique a conexão e tente novamente.');
+  }
+  return dados;
 }
 async function excluirDocumento(colecao, id){
-  await chamarFirestore('/'+colecao+'/'+id, {method:'DELETE'});
+  const resp = await chamarFirestore('/'+colecao+'/'+id, {method:'DELETE'});
+  if(!resp.ok){
+    let dados = null;
+    try{ dados = await resp.json(); }catch(e){}
+    throw new Error((dados && dados.error && dados.error.message) || 'Não foi possível excluir no banco de dados. Verifique a conexão e tente novamente.');
+  }
 }
 
 /* =========================================================================
@@ -2246,14 +2259,18 @@ async function adicionarContaChequeEspecial(){
   if(!nome){ mostrarToast('Informe o nome do banco/conta.'); return; }
   if(contasChequeEspecial.some(c=>c.nome.toLowerCase()===nome.toLowerCase())){ mostrarToast('Essa conta já está cadastrada.'); return; }
   const payload = {nome, limite};
-  const criado = await criarDocumento('contasChequeEspecial', payload);
-  const id = criado.name.split('/').pop();
-  contasChequeEspecial.push(Object.assign({id}, payload));
-  inputNome.value = ''; inputLimite.value = '';
-  contaSelecionadaChequeEspecialId = id;
-  preencherSelectContaChequeEspecial();
-  renderizarPainelChequeEspecial();
-  mostrarToast('Conta adicionada.');
+  try{
+    const criado = await criarDocumento('contasChequeEspecial', payload);
+    const id = criado.name.split('/').pop();
+    contasChequeEspecial.push(Object.assign({id}, payload));
+    inputNome.value = ''; inputLimite.value = '';
+    contaSelecionadaChequeEspecialId = id;
+    preencherSelectContaChequeEspecial();
+    renderizarPainelChequeEspecial();
+    mostrarToast('Conta adicionada.');
+  }catch(e){
+    mostrarToast('Não foi possível salvar a conta. Verifique a conexão e tente novamente.');
+  }
 }
 
 async function salvarLimiteContaChequeEspecial(conta, inputEl){
@@ -2276,6 +2293,7 @@ function confirmarExclusaoContaChequeEspecial(conta){
     ? `Existem lançamentos usando a conta "${conta.nome}". Eles não serão apagados, mas ficarão sem conta vinculada. Deseja continuar?`
     : `Deseja excluir a conta "${conta.nome}"?`;
   abrirConfirmacao('Excluir conta', texto, async ()=>{
+    try{
     await excluirDocumento('contasChequeEspecial', conta.id);
     contasChequeEspecial = contasChequeEspecial.filter(c=>c.id!==conta.id);
     if(contaSelecionadaChequeEspecialId===conta.id) contaSelecionadaChequeEspecialId = null;
@@ -2283,6 +2301,9 @@ function confirmarExclusaoContaChequeEspecial(conta){
     renderizarPainelChequeEspecial();
     fecharConfirmacao();
     mostrarToast('Conta excluída.');
+    }catch(e){
+      mostrarToast('Não foi possível excluir a conta. Verifique a conexão e tente novamente.');
+    }
   });
 }
 
@@ -2473,14 +2494,18 @@ async function adicionarContaBancaria(){
   if(!nome){ mostrarToast('Informe o nome do banco/conta.'); return; }
   if(contasBancarias.some(c=>c.nome.toLowerCase()===nome.toLowerCase())){ mostrarToast('Essa conta já está cadastrada.'); return; }
   const payload = {nome, saldoInicial};
-  const criado = await criarDocumento('contasBancarias', payload);
-  const id = criado.name.split('/').pop();
-  contasBancarias.push(Object.assign({id}, payload));
-  inputNome.value = ''; inputSaldo.value = '';
-  contaSelecionadaBancariaId = id;
-  preencherSelectContaBancaria();
-  renderizarPainelContasBancarias();
-  mostrarToast('Conta adicionada.');
+  try{
+    const criado = await criarDocumento('contasBancarias', payload);
+    const id = criado.name.split('/').pop();
+    contasBancarias.push(Object.assign({id}, payload));
+    inputNome.value = ''; inputSaldo.value = '';
+    contaSelecionadaBancariaId = id;
+    preencherSelectContaBancaria();
+    renderizarPainelContasBancarias();
+    mostrarToast('Conta adicionada.');
+  }catch(e){
+    mostrarToast('Não foi possível salvar a conta. Verifique a conexão e tente novamente.');
+  }
 }
 
 async function salvarSaldoInicialContaBancaria(conta, inputEl){
@@ -2503,13 +2528,17 @@ function confirmarExclusaoContaBancaria(conta){
     ? `Existem lançamentos usando a conta "${conta.nome}". Eles não serão apagados, mas ficarão sem conta vinculada. Deseja continuar?`
     : `Deseja excluir a conta "${conta.nome}"?`;
   abrirConfirmacao('Excluir conta', texto, async ()=>{
-    await excluirDocumento('contasBancarias', conta.id);
-    contasBancarias = contasBancarias.filter(c=>c.id!==conta.id);
-    if(contaSelecionadaBancariaId===conta.id) contaSelecionadaBancariaId = null;
-    preencherSelectContaBancaria();
-    renderizarPainelContasBancarias();
-    fecharConfirmacao();
-    mostrarToast('Conta excluída.');
+    try{
+      await excluirDocumento('contasBancarias', conta.id);
+      contasBancarias = contasBancarias.filter(c=>c.id!==conta.id);
+      if(contaSelecionadaBancariaId===conta.id) contaSelecionadaBancariaId = null;
+      preencherSelectContaBancaria();
+      renderizarPainelContasBancarias();
+      fecharConfirmacao();
+      mostrarToast('Conta excluída.');
+    }catch(e){
+      mostrarToast('Não foi possível excluir a conta. Verifique a conexão e tente novamente.');
+    }
   });
 }
 
@@ -2558,13 +2587,17 @@ async function adicionarPessoa(){
   const nome = input.value.trim();
   if(!nome) return;
   if(pessoas.some(p=>p.nome.toLowerCase()===nome.toLowerCase())){ mostrarToast('Essa pessoa já está cadastrada.'); return; }
-  const criado = await criarDocumento('pessoas', {nome});
-  const id = criado.name.split('/').pop();
-  pessoas.push({id, nome});
-  input.value = '';
-  preencherSelectsPessoa();
-  renderizarPessoas();
-  mostrarToast('Pessoa adicionada.');
+  try{
+    const criado = await criarDocumento('pessoas', {nome});
+    const id = criado.name.split('/').pop();
+    pessoas.push({id, nome});
+    input.value = '';
+    preencherSelectsPessoa();
+    renderizarPessoas();
+    mostrarToast('Pessoa adicionada.');
+  }catch(e){
+    mostrarToast('Não foi possível salvar a pessoa. Verifique a conexão e tente novamente.');
+  }
 }
 function confirmarExclusaoPessoa(pessoa){
   if(pessoas.length<=1){ mostrarToast('É preciso manter ao menos uma pessoa cadastrada.'); return; }
@@ -2573,12 +2606,16 @@ function confirmarExclusaoPessoa(pessoa){
     ? `Existem lançamentos de "${pessoa.nome}". Eles não serão apagados, mas ficarão com esse nome mesmo assim. Deseja continuar?`
     : `Deseja remover "${pessoa.nome}" da lista de pessoas com acesso?`;
   abrirConfirmacao('Remover pessoa', texto, async ()=>{
-    await excluirDocumento('pessoas', pessoa.id);
-    pessoas = pessoas.filter(p=>p.id!==pessoa.id);
-    preencherSelectsPessoa();
-    renderizarPessoas();
-    fecharConfirmacao();
-    mostrarToast('Pessoa removida.');
+    try{
+      await excluirDocumento('pessoas', pessoa.id);
+      pessoas = pessoas.filter(p=>p.id!==pessoa.id);
+      preencherSelectsPessoa();
+      renderizarPessoas();
+      fecharConfirmacao();
+      mostrarToast('Pessoa removida.');
+    }catch(e){
+      mostrarToast('Não foi possível remover a pessoa. Verifique a conexão e tente novamente.');
+    }
   });
 }
 
@@ -4041,13 +4078,17 @@ function confirmarExclusaoFuturas(){
       ? 'Isso vai excluir este mês e todos os meses seguintes ainda não pagos desta recorrência. Os meses já passados continuam no histórico. Deseja continuar?'
       : 'Isso vai excluir esta parcela e todas as parcelas futuras ainda não pagas desta mesma compra. As parcelas já passadas continuam no histórico. Deseja continuar?',
     async ()=>{
-      const doGrupo = lancamentos.filter(l=> l.grupoParcelaId===atual.grupoParcelaId && Number(l.parcelaAtual) >= Number(atual.parcelaAtual));
-      for(const l of doGrupo){ await excluirDocumento('lancamentos', l.id); }
-      const idsExcluir = new Set(doGrupo.map(l=>l.id));
-      lancamentos = lancamentos.filter(l=>!idsExcluir.has(l.id));
-      fecharModalLancamento();
-      renderizarTudo();
-      mostrarToast(ehRecorrencia ? 'Repetições futuras excluídas.' : 'Parcelas futuras excluídas.');
+      try{
+        const doGrupo = lancamentos.filter(l=> l.grupoParcelaId===atual.grupoParcelaId && Number(l.parcelaAtual) >= Number(atual.parcelaAtual));
+        for(const l of doGrupo){ await excluirDocumento('lancamentos', l.id); }
+        const idsExcluir = new Set(doGrupo.map(l=>l.id));
+        lancamentos = lancamentos.filter(l=>!idsExcluir.has(l.id));
+        fecharModalLancamento();
+        renderizarTudo();
+        mostrarToast(ehRecorrencia ? 'Repetições futuras excluídas.' : 'Parcelas futuras excluídas.');
+      }catch(e){
+        mostrarToast('Não foi possível excluir. Verifique a conexão e tente novamente.');
+      }
     }
   );
 }
@@ -4072,13 +4113,17 @@ async function adicionarCategoria(){
   const nome = input.value.trim();
   if(!nome) return;
   if(categorias.some(c=>c.nome.toLowerCase()===nome.toLowerCase())){ mostrarToast('Essa categoria já existe.'); return; }
-  const criado = await criarDocumento('categorias', {nome});
-  const id = criado.name.split('/').pop();
-  categorias.push({id, nome});
-  input.value = '';
-  preencherSelectsCategoria();
-  renderizarCategorias();
-  mostrarToast('Categoria adicionada.');
+  try{
+    const criado = await criarDocumento('categorias', {nome});
+    const id = criado.name.split('/').pop();
+    categorias.push({id, nome});
+    input.value = '';
+    preencherSelectsCategoria();
+    renderizarCategorias();
+    mostrarToast('Categoria adicionada.');
+  }catch(e){
+    mostrarToast('Não foi possível salvar a categoria. Verifique a conexão e tente novamente.');
+  }
 }
 function confirmarExclusaoCategoria(categoria){
   const emUso = lancamentos.some(l=>l.categoria===categoria.nome);
@@ -4086,12 +4131,16 @@ function confirmarExclusaoCategoria(categoria){
     ? `Existem lançamentos usando "${categoria.nome}". Eles não serão apagados, mas ficarão sem categoria válida. Deseja continuar?`
     : `Deseja excluir a categoria "${categoria.nome}"?`;
   abrirConfirmacao('Excluir categoria', texto, async ()=>{
-    await excluirDocumento('categorias', categoria.id);
-    categorias = categorias.filter(c=>c.id!==categoria.id);
-    preencherSelectsCategoria();
-    renderizarCategorias();
-    fecharConfirmacao();
-    mostrarToast('Categoria excluída.');
+    try{
+      await excluirDocumento('categorias', categoria.id);
+      categorias = categorias.filter(c=>c.id!==categoria.id);
+      preencherSelectsCategoria();
+      renderizarCategorias();
+      fecharConfirmacao();
+      mostrarToast('Categoria excluída.');
+    }catch(e){
+      mostrarToast('Não foi possível excluir a categoria. Verifique a conexão e tente novamente.');
+    }
   });
 }
 
@@ -4115,15 +4164,19 @@ async function adicionarCartao(){
   if(inputVencimento.value && (diaVencimento<1 || diaVencimento>31)){ mostrarToast('Dia de vencimento inválido (use 1 a 31).'); return; }
 
   const payload = {nome, titular, limite, diaFechamento: diaFechamento||0, diaVencimento: diaVencimento||0};
-  const criado = await criarDocumento('cartoes', payload);
-  const id = criado.name.split('/').pop();
-  cartoes.push(Object.assign({id}, payload));
-  inputNome.value = ''; inputLimite.value = ''; inputFechamento.value = ''; inputVencimento.value = '';
-  cartaoSelecionadoFaturaId = id;
-  offsetCicloFatura = 0;
-  preencherSelectCartao();
-  renderizarPainelFaturas();
-  mostrarToast('Cartão adicionado.');
+  try{
+    const criado = await criarDocumento('cartoes', payload);
+    const id = criado.name.split('/').pop();
+    cartoes.push(Object.assign({id}, payload));
+    inputNome.value = ''; inputLimite.value = ''; inputFechamento.value = ''; inputVencimento.value = '';
+    cartaoSelecionadoFaturaId = id;
+    offsetCicloFatura = 0;
+    preencherSelectCartao();
+    renderizarPainelFaturas();
+    mostrarToast('Cartão adicionado.');
+  }catch(e){
+    mostrarToast('Não foi possível salvar o cartão. Verifique a conexão e tente novamente.');
+  }
 }
 function confirmarExclusaoCartao(cartao){
   const emUso = lancamentos.some(l=>l.cartao===cartao.nome);
@@ -4131,13 +4184,17 @@ function confirmarExclusaoCartao(cartao){
     ? `Existem lançamentos usando o cartão "${cartao.nome}". Eles não serão apagados, mas ficarão sem cartão vinculado. Deseja continuar?`
     : `Deseja excluir o cartão "${cartao.nome}"?`;
   abrirConfirmacao('Excluir cartão', texto, async ()=>{
-    await excluirDocumento('cartoes', cartao.id);
-    cartoes = cartoes.filter(c=>c.id!==cartao.id);
-    if(cartaoSelecionadoFaturaId===cartao.id) cartaoSelecionadoFaturaId = null;
-    preencherSelectCartao();
-    renderizarPainelFaturas();
-    fecharConfirmacao();
-    mostrarToast('Cartão excluído.');
+    try{
+      await excluirDocumento('cartoes', cartao.id);
+      cartoes = cartoes.filter(c=>c.id!==cartao.id);
+      if(cartaoSelecionadoFaturaId===cartao.id) cartaoSelecionadoFaturaId = null;
+      preencherSelectCartao();
+      renderizarPainelFaturas();
+      fecharConfirmacao();
+      mostrarToast('Cartão excluído.');
+    }catch(e){
+      mostrarToast('Não foi possível excluir o cartão. Verifique a conexão e tente novamente.');
+    }
   });
 }
 
@@ -4338,13 +4395,22 @@ $('#novo-cartao-vencimento').addEventListener('keydown', e=>{ if(e.key==='Enter'
   if(FIREBASE_CONFIG.apiKey.startsWith('COLE_AQUI')) return;
   const rt = localStorage.getItem('cdc_refresh');
   if(!rt) return;
-  const ok = await renovarToken();
-  if(ok){
-    // sessão retomada — ainda assim pedimos para escolher quem está usando agora
-    $('#tela-login').style.display = 'none';
-    $('#app').classList.add('ativo');
-    await carregarTudo();
-    abrirModalQuemUsa();
+  try{
+    const ok = await renovarToken();
+    if(ok){
+      // sessão retomada — ainda assim pedimos para escolher quem está usando agora
+      $('#tela-login').style.display = 'none';
+      $('#app').classList.add('ativo');
+      await carregarTudo();
+      abrirModalQuemUsa();
+    }
+  }catch(e){
+    // não foi possível retomar a sessão automaticamente: volta para a tela de login
+    // e mostra o motivo, em vez de deixar a tela travada sem explicação
+    $('#tela-login').style.display = '';
+    $('#app').classList.remove('ativo');
+    const erro = $('#erro-login');
+    if(erro) erro.textContent = 'Não foi possível retomar sua sessão automaticamente. Faça login novamente. (' + e.message + ')';
   }
 })();
 
