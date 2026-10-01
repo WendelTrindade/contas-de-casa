@@ -105,20 +105,23 @@
     padding:0;
   }
 
-  main{ max-width:960px; margin:0 auto; padding:20px 16px 90px; }
+  :root{ --largura-lateral: 222px; --largura-lateral-estreita: 64px; --altura-topo: 58px; }
+
+  main{ max-width:960px; margin:0 0 0 var(--largura-lateral); padding:20px 16px 90px; }
 
   nav.abas{
-    display:flex; gap:2px; overflow-x:auto; margin-bottom:20px; border-bottom:1px solid var(--line);
-    -webkit-overflow-scrolling:touch; position:sticky; top:58px; z-index:19; background:var(--bg);
-    padding-top:2px;
+    display:flex; flex-direction:column; gap:1px; overflow-y:auto; overflow-x:hidden;
+    -webkit-overflow-scrolling:touch; position:fixed; top:var(--altura-topo); left:0; bottom:0;
+    width:var(--largura-lateral); z-index:19; background:var(--paper); border-right:1px solid var(--line);
+    padding:10px 0;
   }
   nav.abas button{
-    flex:0 0 auto; background:none; border:none; padding:10px 14px; font-family:-apple-system,sans-serif;
-    font-size:0.88rem; color:var(--ink-soft); border-bottom:2px solid transparent; white-space:nowrap;
-    border-radius:8px 8px 0 0;
+    flex:0 0 auto; background:none; border:none; padding:11px 18px; font-family:-apple-system,sans-serif;
+    font-size:0.86rem; color:var(--ink-soft); text-align:left; white-space:nowrap;
+    border-left:3px solid transparent; border-radius:0;
   }
   nav.abas button:hover{ color:var(--forest-dark); background:rgba(31,75,63,0.06); }
-  nav.abas button.ativa{ color:var(--forest-dark); border-bottom-color:var(--forest); font-weight:600; background:var(--sage); }
+  nav.abas button.ativa{ color:var(--forest-dark); border-left-color:var(--forest); font-weight:600; background:var(--sage); }
   nav.abas button[data-painel="painel-inicio"]::before{ content:'🏠 '; }
   nav.abas button[data-painel="painel-lancamentos"]::before{ content:'📒 '; }
   nav.abas button[data-painel="painel-insights"]::before{ content:'🔎 '; }
@@ -130,6 +133,13 @@
   nav.abas button[data-painel="painel-categorias"]::before{ content:'🏷️ '; }
   nav.abas button[data-painel="painel-ajustes"]::before{ content:'⚙️ '; }
 
+  @media (max-width:760px){
+    nav.abas{ width:var(--largura-lateral-estreita); align-items:center; }
+    nav.abas button{ font-size:0; padding:13px 0; width:100%; text-align:center; border-left-width:3px; }
+    nav.abas button::before{ font-size:1.25rem; }
+    main{ margin-left:var(--largura-lateral-estreita); padding-left:10px; padding-right:10px; }
+  }
+
   section.painel{ display:none; }
   section.painel.ativo{ display:block; }
 
@@ -139,8 +149,8 @@
     box-shadow:var(--shadow-card); transition: box-shadow .2s var(--ease), transform .2s var(--ease);
   }
   .cartao-resumo:hover{ box-shadow:var(--shadow-card-hover); transform:translateY(-1px); }
-  .cartao-resumo .rotulo{ font-family:-apple-system,sans-serif; font-size:0.7rem; color:var(--ink-soft); text-transform:none; }
-  .cartao-resumo .valor{ font-size:1.28rem; margin-top:4px; font-weight:600; }
+  .cartao-resumo .rotulo{ font-family:-apple-system,sans-serif; font-size:0.72rem; color:var(--ink-soft); text-transform:none; letter-spacing:.01em; }
+  .cartao-resumo .valor{ font-size:1.5rem; margin-top:5px; font-weight:700; letter-spacing:-.01em; }
   .cartao-resumo.receita{ border-left-color:var(--forest); }
   .cartao-resumo.receita .valor{ color:var(--forest); }
   .cartao-resumo.despesa{ border-left-color:var(--rose); }
@@ -149,9 +159,21 @@
   .cartao-resumo.saldo .valor{ color:var(--gold); }
   .cartao-resumo.receita .rotulo::before{ content:'↑ '; }
   .cartao-resumo.despesa .rotulo::before{ content:'↓ '; }
+  .delta-resumo{
+    font-family:-apple-system,sans-serif; font-size:0.72rem; color:var(--ink-soft); margin-top:6px; min-height:1em;
+  }
+  .delta-resumo.bom{ color:var(--forest); font-weight:600; }
+  .delta-resumo.ruim{ color:var(--rose); font-weight:600; }
   @media (max-width:480px){
     .grade-resumo{ grid-template-columns:1fr 1fr; }
     .cartao-resumo.saldo{ grid-column: span 2; }
+  }
+
+  .grade-dashboard{ display:grid; grid-template-columns:1fr; gap:16px; align-items:start; }
+  .coluna-dashboard{ display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .coluna-dashboard .bloco{ margin-bottom:0; }
+  @media (min-width:900px){
+    .grade-dashboard{ grid-template-columns:1.25fr 1fr; }
   }
 
   .seletor-mes{
@@ -297,6 +319,8 @@
   .linha-resumo-limite.critico{ border-color:var(--rose); }
   .linha-resumo-limite.critico .barra-preenchida{ background:var(--rose); }
   .linha-resumo-limite.critico .cab .valor{ color:var(--rose); font-weight:600; }
+  .linha-resumo-limite.positivo{ border-color:var(--forest); }
+  .linha-resumo-limite.positivo .cab .valor{ color:var(--forest); font-weight:600; }
 
   .form-novo-cartao{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
   .form-novo-cartao .campo-modal{ margin-bottom:0; }
@@ -511,33 +535,52 @@
         <div class="cartao-resumo receita">
           <div class="rotulo">Receitas do mês</div>
           <div class="valor" id="res-receitas">R$ 0,00</div>
+          <div class="delta-resumo" id="res-receitas-delta"></div>
         </div>
         <div class="cartao-resumo despesa">
           <div class="rotulo">Despesas do mês</div>
           <div class="valor" id="res-despesas">R$ 0,00</div>
+          <div class="delta-resumo" id="res-despesas-delta"></div>
         </div>
         <div class="cartao-resumo saldo">
           <div class="rotulo">Saldo do mês</div>
           <div class="valor" id="res-saldo">R$ 0,00</div>
+          <div class="delta-resumo" id="res-saldo-delta"></div>
         </div>
       </div>
 
-      <div class="bloco" id="bloco-resumo-limites">
-        <h2>Limites e contas<span class="sub">Visão geral de cartões, cheque especial e contas bancárias</span></h2>
-        <div id="resumo-limites-contas"></div>
-      </div>
+      <div class="grade-dashboard">
+        <div class="coluna-dashboard">
+          <div class="bloco" id="bloco-resumo-limites">
+            <h2>Limites e contas<span class="sub">Visão geral de cartões, cheque especial e contas bancárias</span></h2>
+            <div id="resumo-limites-contas"></div>
+          </div>
 
-      <div class="bloco">
-        <h2>Para onde o dinheiro foi<span class="sub">Gastos do mês por categoria</span></h2>
-        <div id="ranking-categorias"><div class="vazio">Sem despesas lançadas neste mês.</div></div>
-      </div>
+          <div class="bloco">
+            <h2>Para onde o dinheiro foi<span class="sub">Gastos do mês por categoria</span></h2>
+            <div id="ranking-categorias"><div class="vazio">Sem despesas lançadas neste mês.</div></div>
+          </div>
+        </div>
 
-      <div class="bloco">
-        <h2>Últimos 6 meses<span class="sub">Receitas e despesas</span></h2>
-        <div class="grafico-tendencia" id="grafico-tendencia"></div>
-        <div class="legenda-tendencia">
-          <span><i class="ponto r"></i>Receitas</span>
-          <span><i class="ponto d"></i>Despesas</span>
+        <div class="coluna-dashboard">
+          <div class="bloco">
+            <h2>Diagnóstico do mês<span class="sub">Comparado à média dos últimos 3 meses</span></h2>
+            <div id="inicio-diagnostico"><div class="vazio">Ainda não há dados suficientes para comparar.</div></div>
+          </div>
+
+          <div class="bloco">
+            <h2>Gasto por pessoa<span class="sub">Quem lançou cada despesa este mês</span></h2>
+            <div id="inicio-gasto-pessoa"><div class="vazio">Sem despesas lançadas neste mês.</div></div>
+          </div>
+
+          <div class="bloco">
+            <h2>Últimos 6 meses<span class="sub">Receitas e despesas</span></h2>
+            <div class="grafico-tendencia" id="grafico-tendencia"></div>
+            <div class="legenda-tendencia">
+              <span><i class="ponto r"></i>Receitas</span>
+              <span><i class="ponto d"></i>Despesas</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1331,8 +1374,10 @@ function renderizarTudo(){
   renderizarRankingCategorias();
   renderizarTendencia();
   renderizarListaLancamentos();
-  renderizarInsights();
-  renderizarGastoPorPessoa();
+  renderizarInsights('#lista-insights');
+  renderizarInsights('#inicio-diagnostico');
+  renderizarGastoPorPessoa('#gasto-por-pessoa');
+  renderizarGastoPorPessoa('#inicio-gasto-pessoa');
   renderizarGastoPorCartao();
   renderizarCategorias();
   renderizarPessoas();
@@ -1349,9 +1394,36 @@ function renderizarResumo(){
   const doMes = lancamentosDoMes(mesReferencia);
   const receitas = doMes.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
   const despesas = doMes.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
-  $('#res-receitas').textContent = formatarMoeda(receitas);
-  $('#res-despesas').textContent = formatarMoeda(despesas);
+  $('#res-receitas').textContent = (receitas>0?'+ ':'') + formatarMoeda(receitas);
+  $('#res-despesas').textContent = (despesas>0?'- ':'') + formatarMoeda(despesas);
   $('#res-saldo').textContent = formatarMoeda(receitas-despesas);
+
+  const mesAnterior = new Date(mesReferencia.getFullYear(), mesReferencia.getMonth()-1, 1);
+  const doMesAnterior = lancamentosDoMes(mesAnterior);
+  const receitasAnt = doMesAnterior.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
+  const despesasAnt = doMesAnterior.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
+  montarDeltaResumo('#res-receitas-delta', receitas, receitasAnt, true);
+  montarDeltaResumo('#res-despesas-delta', despesas, despesasAnt, false);
+  montarDeltaResumo('#res-saldo-delta', receitas-despesas, receitasAnt-despesasAnt, true);
+}
+function montarDeltaResumo(seletor, atual, anterior, subirEBom){
+  const el = $(seletor);
+  if(!el) return;
+  if(!anterior){
+    el.textContent = '';
+    el.className = 'delta-resumo';
+    return;
+  }
+  const variacao = ((atual-anterior)/Math.abs(anterior))*100;
+  if(Math.abs(variacao)<1){
+    el.textContent = '≈ igual ao mês passado';
+    el.className = 'delta-resumo';
+    return;
+  }
+  const subiu = variacao>0;
+  const bom = subiu===subirEBom;
+  el.textContent = (subiu?'▲ ':'▼ ')+Math.abs(variacao).toFixed(0)+'% vs. mês passado';
+  el.className = 'delta-resumo '+(bom?'bom':'ruim');
 }
 
 function renderizarRankingCategorias(){
@@ -1688,8 +1760,9 @@ function formatarMesReferencia(iso){
   return m+'/'+a;
 }
 
-function renderizarInsights(){
-  const container = $('#lista-insights');
+function renderizarInsights(seletor){
+  const container = $(seletor||'#lista-insights');
+  if(!container) return;
   const mesAtualDados = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa');
   // média das despesas por categoria nos 3 meses anteriores
   const mediasAnteriores = {};
@@ -1737,8 +1810,9 @@ function renderizarInsights(){
   });
 }
 
-function renderizarGastoPorPessoa(){
-  const container = $('#gasto-por-pessoa');
+function renderizarGastoPorPessoa(seletor){
+  const container = $(seletor||'#gasto-por-pessoa');
+  if(!container) return;
   const doMes = lancamentosDoMes(mesReferencia).filter(l=>l.tipo==='despesa');
   if(doMes.length===0){ container.innerHTML = '<div class="vazio">Sem despesas lançadas neste mês.</div>'; return; }
   const porPessoa = {};
@@ -2496,10 +2570,10 @@ function renderizarResumoLimitesContas(){
     alvo.innerHTML = '<div class="vazio">Nenhum cartão, cheque especial ou conta bancária cadastrado ainda.</div>';
     return;
   }
-  function linha(nome, tipoTexto, pctReal, valorTexto){
+  function linha(nome, tipoTexto, pctReal, valorTexto, classeExtra){
     const nivel = classificarPercentualLimite(pctReal);
     const div = document.createElement('div');
-    div.className = 'linha-resumo-limite' + (nivel ? ' '+nivel : '');
+    div.className = 'linha-resumo-limite' + (nivel ? ' '+nivel : '') + (classeExtra ? ' '+classeExtra : '');
     const cab = document.createElement('div'); cab.className='cab';
     const spNome = document.createElement('span'); spNome.className='nome';
     spNome.textContent = nome + ' · ' + tipoTexto;
@@ -2529,7 +2603,8 @@ function renderizarResumoLimitesContas(){
   });
   contasBancarias.forEach(conta=>{
     const {saldoAtual} = calcularSaldoContaBancaria(conta);
-    linha(conta.nome, 'Conta bancária', saldoAtual<0 ? 100 : null, 'Saldo: '+formatarMoeda(saldoAtual));
+    const texto = (saldoAtual>0?'+ ':'') + 'Saldo: '+formatarMoeda(saldoAtual);
+    linha(conta.nome, 'Conta bancária', saldoAtual<0 ? 100 : null, texto, saldoAtual>0 ? 'positivo' : '');
   });
 }
 
