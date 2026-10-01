@@ -404,6 +404,7 @@
       <button class="aba-btn" data-painel="painel-calendario">Calendário</button>
       <button class="aba-btn" data-painel="painel-faturas">Cartões de Crédito</button>
       <button class="aba-btn" data-painel="painel-cheque-especial">Cheque Especial</button>
+      <button class="aba-btn" data-painel="painel-contas-bancarias">Contas Bancárias</button>
       <button class="aba-btn" data-painel="painel-relatorios">Relatórios</button>
       <button class="aba-btn" data-painel="painel-categorias">Categorias</button>
       <button class="aba-btn" data-painel="painel-ajustes">Ajustes</button>
@@ -563,6 +564,11 @@
         <div id="fatura-resumo-futuras" class="gasto-ciclo"></div>
         <div id="fatura-lista-futuras"></div>
       </div>
+      <div class="bloco" id="bloco-fatura-historico" style="display:none;">
+        <h2>Todos os lançamentos deste cartão<span class="sub">Histórico completo, de todas as faturas, com data, valor e status</span></h2>
+        <div id="fatura-historico-resumo" class="gasto-ciclo"></div>
+        <div id="fatura-lista-historico"></div>
+      </div>
     </section>
 
     <!-- CHEQUE ESPECIAL -->
@@ -589,6 +595,33 @@
         <h2>Gastos desta conta<span class="sub">Uso do cheque especial, em aberto e já pago</span></h2>
         <div id="cheque-especial-acoes-gastos"></div>
         <div id="cheque-especial-lista-gastos"></div>
+      </div>
+    </section>
+
+    <!-- CONTAS BANCÁRIAS -->
+    <section class="painel" id="painel-contas-bancarias">
+      <div class="bloco">
+        <h2>Contas bancárias<span class="sub">Débito/Pix abatem do saldo e receitas somam ao saldo</span></h2>
+        <div class="lista-categorias" id="chips-contas-bancarias"></div>
+        <div class="form-novo-cartao">
+          <div class="campo-modal">
+            <label for="nova-conta-bancaria-nome">Banco / conta</label>
+            <input type="text" id="nova-conta-bancaria-nome" placeholder="Ex: Caixa, Itaú, Nubank...">
+          </div>
+          <div class="campo-modal">
+            <label for="nova-conta-bancaria-saldo">Saldo inicial (R$)</label>
+            <input type="number" id="nova-conta-bancaria-saldo" step="0.01" placeholder="0,00">
+          </div>
+          <button id="btn-add-conta-bancaria" class="largura-total">Adicionar conta</button>
+        </div>
+      </div>
+      <div class="bloco" id="bloco-conta-bancaria-detalhe" style="display:none;">
+        <div id="conta-bancaria-status"></div>
+      </div>
+      <div class="bloco" id="bloco-conta-bancaria-movimentos" style="display:none;">
+        <h2>Movimentos desta conta<span class="sub">Receitas e despesas lançadas nesta conta</span></h2>
+        <div id="conta-bancaria-acoes"></div>
+        <div id="conta-bancaria-lista-movimentos"></div>
       </div>
     </section>
 
@@ -693,7 +726,7 @@
       <label for="m-forma">Forma de pagamento</label>
       <select id="m-forma">
         <option value="dinheiro">Dinheiro / Pix</option>
-        <option value="debito">Débito</option>
+        <option value="debito">Débito / Valor em conta</option>
         <option value="credito">Crédito</option>
         <option value="financiamento">Financiamento / Prestação</option>
         <option value="cheque_especial">Cheque especial</option>
@@ -722,6 +755,10 @@
     <div class="campo-modal" id="campo-cheque-especial" style="display:none;">
       <label for="m-conta-cheque-especial">Conta / banco</label>
       <select id="m-conta-cheque-especial"><option value="">Selecione a conta</option></select>
+    </div>
+    <div class="campo-modal" id="campo-conta-bancaria" style="display:none;">
+      <label for="m-conta-bancaria">Conta bancária</label>
+      <select id="m-conta-bancaria"><option value="">Selecione a conta</option></select>
     </div>
     <div class="linha-2" id="campo-datas-extras" style="display:none;">
       <div class="campo-modal">
@@ -924,6 +961,8 @@ let cartoes = [];
 let pagamentosFatura = [];
 let contasChequeEspecial = [];
 let contaSelecionadaChequeEspecialId = null;
+let contasBancarias = [];
+let contaSelecionadaBancariaId = null;
 let cartaoSelecionadoFaturaId = null;
 let offsetCicloFatura = 0;
 let faturaPagamentoPendente = null;
@@ -1089,13 +1128,14 @@ async function carregarTudo(silencioso){
     $all('.painel').forEach(p=>{ if(!p.classList.contains('ativa')) return; });
     main_mostrarCarregando(true);
   }
-  const [cats, lancs, cards, pagsFatura, pess, cheEsp] = await Promise.all([
+  const [cats, lancs, cards, pagsFatura, pess, cheEsp, contasBanc] = await Promise.all([
     listarDocumentos('categorias'),
     listarDocumentos('lancamentos'),
     listarDocumentos('cartoes'),
     listarDocumentos('pagamentosFatura'),
     listarDocumentos('pessoas'),
-    listarDocumentos('contasChequeEspecial')
+    listarDocumentos('contasChequeEspecial'),
+    listarDocumentos('contasBancarias')
   ]);
   if(cats.length === 0){
     // primeira vez: cria categorias padrão
@@ -1126,11 +1166,13 @@ async function carregarTudo(silencioso){
   }
   pagamentosFatura = pagsFatura;
   contasChequeEspecial = cheEsp;
+  contasBancarias = contasBanc;
   lancamentos = lancs.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
   main_mostrarCarregando(false);
   preencherSelectsCategoria();
   preencherSelectCartao();
   preencherSelectContaChequeEspecial();
+  preencherSelectContaBancaria();
   preencherSelectsPessoa();
   renderizarTudo();
 }
@@ -1174,6 +1216,7 @@ function renderizarTudo(){
   renderizarCalendario();
   renderizarPainelFaturas();
   renderizarPainelChequeEspecial();
+  renderizarPainelContasBancarias();
   renderizarRelatorioMensal();
   renderizarRelatorioFuturos();
 }
@@ -1276,7 +1319,7 @@ function renderizarListaLancamentos(){
       tagCartao.textContent = 'Crédito' + (l.cartao ? ' • '+l.cartao : '') + (Number(l.parcelaTotal)>1 ? ' • '+l.parcelaAtual+'/'+l.parcelaTotal : '');
       meta.appendChild(tagCartao);
     } else if(l.formaPagamento === 'debito'){
-      const tagDebito = document.createElement('span'); tagDebito.className='tag'; tagDebito.textContent = 'Débito';
+      const tagDebito = document.createElement('span'); tagDebito.className='tag'; tagDebito.textContent = 'Débito/Conta'+(l.contaBancaria?' • '+l.contaBancaria:'');
       meta.appendChild(tagDebito);
     } else if(l.formaPagamento === 'financiamento'){
       const tagFin = document.createElement('span'); tagFin.className='tag';
@@ -1285,6 +1328,10 @@ function renderizarListaLancamentos(){
     } else if(l.formaPagamento === 'cheque_especial'){
       const tagCE = document.createElement('span'); tagCE.className='tag'; tagCE.textContent = 'Cheque especial'+(l.contaChequeEspecial?' • '+l.contaChequeEspecial:'');
       meta.appendChild(tagCE);
+    }
+    if(l.tipo==='receita' && l.contaBancaria){
+      const tagContaReceita = document.createElement('span'); tagContaReceita.className='tag'; tagContaReceita.textContent = 'Conta • '+l.contaBancaria;
+      meta.appendChild(tagContaReceita);
     }
     if(l.recorrente && Number(l.parcelaTotal)>1){
       const tagRec = document.createElement('span'); tagRec.className='tag'; tagRec.textContent = (l.tipoRecorrencia==='assinatura' ? 'Assinatura • ' : 'Recorrente • ')+l.parcelaAtual+'/'+l.parcelaTotal;
@@ -1829,6 +1876,212 @@ function abrirModalNovoGastoChequeEspecial(conta){
   atualizarVisibilidadeFormaPagamento();
 }
 
+/* =========================================================================
+   CONTAS BANCÁRIAS (débito / valor em conta / receitas)
+========================================================================= */
+function calcularMovimentosContaBancaria(nomeConta){
+  return lancamentos.filter(l=> l.contaBancaria===nomeConta && ehPago(l) &&
+    ((l.tipo==='despesa' && l.formaPagamento==='debito') || l.tipo==='receita'));
+}
+function calcularSaldoContaBancaria(conta){
+  const movimentos = calcularMovimentosContaBancaria(conta.nome);
+  const receitas = movimentos.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
+  const despesas = movimentos.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
+  const saldoInicial = Number(conta.saldoInicial||0);
+  return {saldoInicial, receitas, despesas, saldoAtual: saldoInicial + receitas - despesas};
+}
+
+function renderizarPainelContasBancarias(){
+  const chips = $('#chips-contas-bancarias');
+  chips.innerHTML = '';
+  if(contasBancarias.length===0){
+    chips.innerHTML = '<div class="vazio" style="padding:6px 0;">Nenhuma conta cadastrada ainda.</div>';
+    $('#bloco-conta-bancaria-detalhe').style.display = 'none';
+    $('#bloco-conta-bancaria-movimentos').style.display = 'none';
+    return;
+  }
+  if(!contaSelecionadaBancariaId || !contasBancarias.some(c=>c.id===contaSelecionadaBancariaId)){
+    contaSelecionadaBancariaId = contasBancarias[0].id;
+  }
+  contasBancarias.forEach(conta=>{
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip-cartao-seletor' + (conta.id===contaSelecionadaBancariaId ? ' chip-selecionado' : '');
+    chip.textContent = conta.nome;
+    chip.addEventListener('click', ()=>{
+      contaSelecionadaBancariaId = conta.id;
+      renderizarPainelContasBancarias();
+    });
+    chips.appendChild(chip);
+  });
+  renderizarDetalheContaBancaria();
+}
+
+function renderizarDetalheContaBancaria(){
+  const conta = contasBancarias.find(c=>c.id===contaSelecionadaBancariaId);
+  const blocoDetalhe = $('#bloco-conta-bancaria-detalhe');
+  const blocoMovimentos = $('#bloco-conta-bancaria-movimentos');
+  if(!conta){ blocoDetalhe.style.display='none'; blocoMovimentos.style.display='none'; return; }
+  blocoDetalhe.style.display = 'block';
+  blocoMovimentos.style.display = 'block';
+
+  const {saldoInicial, receitas, despesas, saldoAtual} = calcularSaldoContaBancaria(conta);
+
+  const statusEl = $('#conta-bancaria-status');
+  statusEl.innerHTML = '';
+  const card = document.createElement('div'); card.className = 'cartao-detalhado';
+
+  const topo = document.createElement('div'); topo.className='linha-topo';
+  const info = document.createElement('div');
+  const nomeEl = document.createElement('div'); nomeEl.className='nome-cartao'; nomeEl.textContent = conta.nome;
+  info.appendChild(nomeEl);
+  const btnRemover = document.createElement('button'); btnRemover.className='remover'; btnRemover.textContent='✕';
+  btnRemover.title = 'Remover conta';
+  btnRemover.addEventListener('click', ()=>confirmarExclusaoContaBancaria(conta));
+  topo.appendChild(info); topo.appendChild(btnRemover);
+  card.appendChild(topo);
+
+  const linhas = [
+    ['Saldo inicial', saldoInicial, 'var(--ink)'],
+    ['Receitas na conta', receitas, 'var(--forest)'],
+    ['Despesas na conta', despesas, 'var(--rose)'],
+    ['Saldo atual', saldoAtual, saldoAtual<0 ? 'var(--rose)' : 'var(--forest)']
+  ];
+  linhas.forEach(([label,valor,cor])=>{
+    const linha = document.createElement('div'); linha.className='config-linha';
+    const sp1 = document.createElement('span'); sp1.textContent = label;
+    const sp2 = document.createElement('span'); sp2.style.cssText='font-weight:600;color:'+cor+';'; sp2.textContent = formatarMoeda(valor);
+    linha.appendChild(sp1); linha.appendChild(sp2);
+    card.appendChild(linha);
+  });
+
+  const linhaEditarSaldo = document.createElement('div'); linhaEditarSaldo.className='linha-2'; linhaEditarSaldo.style.cssText='margin-top:12px;';
+  const campoNovoSaldo = document.createElement('div'); campoNovoSaldo.className='campo-modal';
+  const labelNovoSaldo = document.createElement('label'); labelNovoSaldo.textContent = 'Novo saldo inicial (R$)';
+  const inputNovoSaldo = document.createElement('input'); inputNovoSaldo.type='number'; inputNovoSaldo.step='0.01'; inputNovoSaldo.placeholder='0,00'; inputNovoSaldo.id='input-editar-saldo-conta-bancaria';
+  campoNovoSaldo.appendChild(labelNovoSaldo); campoNovoSaldo.appendChild(inputNovoSaldo);
+  const campoBtnSaldo = document.createElement('div'); campoBtnSaldo.className='campo-modal'; campoBtnSaldo.style.cssText='display:flex;align-items:flex-end;';
+  const btnSalvarSaldo = document.createElement('button'); btnSalvarSaldo.className='btn-secundario'; btnSalvarSaldo.style.width='100%'; btnSalvarSaldo.textContent='Salvar saldo inicial';
+  btnSalvarSaldo.addEventListener('click', ()=>salvarSaldoInicialContaBancaria(conta, inputNovoSaldo));
+  campoBtnSaldo.appendChild(btnSalvarSaldo);
+  linhaEditarSaldo.appendChild(campoNovoSaldo); linhaEditarSaldo.appendChild(campoBtnSaldo);
+  card.appendChild(linhaEditarSaldo);
+
+  statusEl.appendChild(card);
+
+  const acoes = $('#conta-bancaria-acoes');
+  acoes.innerHTML = '';
+  const btnNovaDespesa = document.createElement('button');
+  btnNovaDespesa.className = 'btn-secundario'; btnNovaDespesa.style.cssText = 'width:100%;margin-bottom:8px;';
+  btnNovaDespesa.textContent = '+ Lançar despesa nesta conta';
+  btnNovaDespesa.addEventListener('click', ()=>abrirModalNovaDespesaContaBancaria(conta));
+  acoes.appendChild(btnNovaDespesa);
+  const btnNovaReceita = document.createElement('button');
+  btnNovaReceita.className = 'btn-secundario'; btnNovaReceita.style.cssText = 'width:100%;margin-bottom:12px;';
+  btnNovaReceita.textContent = '+ Lançar receita nesta conta';
+  btnNovaReceita.addEventListener('click', ()=>abrirModalNovaReceitaContaBancaria(conta));
+  acoes.appendChild(btnNovaReceita);
+
+  const movimentos = lancamentos
+    .filter(l=> l.contaBancaria===conta.nome && ((l.tipo==='despesa' && l.formaPagamento==='debito') || l.tipo==='receita'))
+    .sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+  const listaEl = $('#conta-bancaria-lista-movimentos');
+  listaEl.innerHTML = '';
+  if(movimentos.length===0){
+    listaEl.innerHTML = '<div class="vazio">Nenhum movimento lançado nesta conta.</div>';
+  } else {
+    movimentos.forEach(l=>{
+      const item = document.createElement('div'); item.className='item-lancamento';
+      const esq = document.createElement('div'); esq.className='esq';
+      const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
+      const meta = document.createElement('div'); meta.className='meta';
+      const tagData = document.createElement('span'); tagData.textContent = formatarDataExibicao(l.data);
+      const tagCat = document.createElement('span'); tagCat.className='tag'; tagCat.textContent = l.categoria||'Outros';
+      meta.appendChild(tagData); meta.appendChild(tagCat);
+      const pago = ehPago(l);
+      const selo = document.createElement('span');
+      selo.className = 'selo-pagamento '+(pago?'pago':'pendente');
+      selo.textContent = pago ? 'Pago' : 'Pendente';
+      selo.title = pago ? 'Toque para marcar como pendente' : 'Toque para marcar como pago';
+      selo.addEventListener('click', ()=>alternarStatusPagamento(l));
+      meta.appendChild(selo);
+      esq.appendChild(desc); esq.appendChild(meta);
+      const dir = document.createElement('div'); dir.className='dir';
+      const val = document.createElement('div'); val.className='val '+l.tipo; val.textContent = (l.tipo==='receita'?'+ ':'- ')+formatarMoeda(l.valor);
+      const acoesItem = document.createElement('div'); acoesItem.className='acoes';
+      const btnEditar = document.createElement('button'); btnEditar.textContent='✎';
+      btnEditar.title = 'Editar este movimento';
+      btnEditar.addEventListener('click', ()=>abrirModalLancamento(l));
+      acoesItem.appendChild(btnEditar);
+      dir.appendChild(val); dir.appendChild(acoesItem);
+      item.appendChild(esq); item.appendChild(dir);
+      listaEl.appendChild(item);
+    });
+  }
+}
+
+async function adicionarContaBancaria(){
+  const inputNome = $('#nova-conta-bancaria-nome');
+  const inputSaldo = $('#nova-conta-bancaria-saldo');
+  const nome = inputNome.value.trim();
+  const saldoInicial = parseFloat(inputSaldo.value)||0;
+  if(!nome){ mostrarToast('Informe o nome do banco/conta.'); return; }
+  if(contasBancarias.some(c=>c.nome.toLowerCase()===nome.toLowerCase())){ mostrarToast('Essa conta já está cadastrada.'); return; }
+  const payload = {nome, saldoInicial};
+  const criado = await criarDocumento('contasBancarias', payload);
+  const id = criado.name.split('/').pop();
+  contasBancarias.push(Object.assign({id}, payload));
+  inputNome.value = ''; inputSaldo.value = '';
+  contaSelecionadaBancariaId = id;
+  preencherSelectContaBancaria();
+  renderizarPainelContasBancarias();
+  mostrarToast('Conta adicionada.');
+}
+
+async function salvarSaldoInicialContaBancaria(conta, inputEl){
+  const valor = parseFloat(inputEl.value);
+  if(isNaN(valor)){ mostrarToast('Informe um saldo válido.'); return; }
+  try{
+    await atualizarDocumento('contasBancarias', conta.id, {nome: conta.nome, saldoInicial: valor});
+    const idx = contasBancarias.findIndex(c=>c.id===conta.id);
+    if(idx>-1) contasBancarias[idx] = Object.assign({}, contasBancarias[idx], {saldoInicial: valor});
+    renderizarDetalheContaBancaria();
+    mostrarToast('Saldo inicial atualizado.');
+  }catch(e){
+    mostrarToast('Não foi possível salvar o saldo. Verifique a conexão.');
+  }
+}
+
+function confirmarExclusaoContaBancaria(conta){
+  const emUso = lancamentos.some(l=>l.contaBancaria===conta.nome);
+  const texto = emUso
+    ? `Existem lançamentos usando a conta "${conta.nome}". Eles não serão apagados, mas ficarão sem conta vinculada. Deseja continuar?`
+    : `Deseja excluir a conta "${conta.nome}"?`;
+  abrirConfirmacao('Excluir conta', texto, async ()=>{
+    await excluirDocumento('contasBancarias', conta.id);
+    contasBancarias = contasBancarias.filter(c=>c.id!==conta.id);
+    if(contaSelecionadaBancariaId===conta.id) contaSelecionadaBancariaId = null;
+    preencherSelectContaBancaria();
+    renderizarPainelContasBancarias();
+    fecharConfirmacao();
+    mostrarToast('Conta excluída.');
+  });
+}
+
+function abrirModalNovaDespesaContaBancaria(conta){
+  abrirModalLancamento();
+  selecionarTipoModal('despesa');
+  $('#m-forma').value = 'debito';
+  atualizarVisibilidadeFormaPagamento();
+  $('#m-conta-bancaria').value = conta.nome;
+}
+
+function abrirModalNovaReceitaContaBancaria(conta){
+  abrirModalLancamento();
+  selecionarTipoModal('receita');
+  $('#m-conta-bancaria').value = conta.nome;
+}
+
 function renderizarCategorias(){
   const container = $('#lista-categorias-chips');
   container.innerHTML = '';
@@ -1932,6 +2185,7 @@ function renderizarPainelFaturas(){
     chips.innerHTML = '<div class="vazio" style="padding:6px 0;">Nenhum cartão cadastrado ainda.</div>';
     $('#bloco-fatura-detalhe').style.display = 'none';
     $('#bloco-fatura-compras').style.display = 'none';
+    $('#bloco-fatura-historico').style.display = 'none';
     return;
   }
   if(!cartaoSelecionadoFaturaId || !cartoes.some(c=>c.id===cartaoSelecionadoFaturaId)){
@@ -2087,6 +2341,8 @@ function renderizarDetalheFatura(){
     card.appendChild(aviso);
     card.appendChild(criarLinhaEditarDiasCartao(cartao));
     statusEl.appendChild(card);
+    $('#bloco-fatura-historico').style.display = 'block';
+    renderizarHistoricoCartaoCompleto(cartao);
     return;
   }
   blocoCompras.style.display = 'block';
@@ -2249,6 +2505,59 @@ function renderizarDetalheFatura(){
       listaFuturasEl.appendChild(item);
     });
   }
+
+  $('#bloco-fatura-historico').style.display = 'block';
+  renderizarHistoricoCartaoCompleto(cartao);
+}
+
+function renderizarHistoricoCartaoCompleto(cartao){
+  const todos = lancamentos
+    .filter(l=> l.tipo==='despesa' && l.formaPagamento==='credito' && l.cartao===cartao.nome)
+    .sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+  const totalGeral = todos.reduce((s,l)=>s+Number(l.valor||0),0);
+  const totalPago = todos.filter(ehPago).reduce((s,l)=>s+Number(l.valor||0),0);
+  const totalPendente = totalGeral - totalPago;
+  $('#fatura-historico-resumo').textContent = todos.length+' lançamento(s) no total — '+formatarMoeda(totalGeral)+' (pago: '+formatarMoeda(totalPago)+' • pendente: '+formatarMoeda(totalPendente)+')';
+  const listaEl = $('#fatura-lista-historico');
+  listaEl.innerHTML = '';
+  if(todos.length===0){
+    listaEl.innerHTML = '<div class="vazio">Nenhum lançamento neste cartão ainda.</div>';
+    return;
+  }
+  todos.forEach(l=>{
+    const item = document.createElement('div'); item.className='item-lancamento';
+    const esq = document.createElement('div'); esq.className='esq';
+    const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
+    const meta = document.createElement('div'); meta.className='meta';
+    const tagData = document.createElement('span'); tagData.textContent = formatarDataExibicao(l.data);
+    const tagCat = document.createElement('span'); tagCat.className='tag'; tagCat.textContent = l.categoria||'Outros';
+    meta.appendChild(tagData); meta.appendChild(tagCat);
+    if(Number(l.parcelaTotal)>1){
+      const tagParc = document.createElement('span'); tagParc.className='tag'; tagParc.textContent = l.parcelaAtual+'/'+l.parcelaTotal;
+      meta.appendChild(tagParc);
+    }
+    const pago = ehPago(l);
+    const selo = document.createElement('span');
+    selo.className = 'selo-pagamento '+(pago?'pago':'pendente');
+    selo.textContent = pago ? 'Pago' : 'Pendente';
+    selo.title = pago ? 'Toque para marcar como pendente' : 'Toque para marcar como pago';
+    selo.addEventListener('click', ()=>alternarStatusPagamento(l));
+    meta.appendChild(selo);
+    esq.appendChild(desc); esq.appendChild(meta);
+    const dir = document.createElement('div'); dir.className='dir';
+    const val = document.createElement('div'); val.className='val despesa'; val.textContent = '- '+formatarMoeda(l.valor);
+    const acoes = document.createElement('div'); acoes.className='acoes';
+    const btnEditar = document.createElement('button'); btnEditar.textContent='✎';
+    btnEditar.title = 'Editar este lançamento';
+    btnEditar.addEventListener('click', ()=>abrirModalLancamento(l));
+    const btnExcluir = document.createElement('button'); btnExcluir.textContent='✕';
+    btnExcluir.title = 'Excluir este lançamento';
+    btnExcluir.addEventListener('click', ()=>confirmarExcluirCompraFatura(l));
+    acoes.appendChild(btnEditar); acoes.appendChild(btnExcluir);
+    dir.appendChild(val); dir.appendChild(acoes);
+    item.appendChild(esq); item.appendChild(dir);
+    listaEl.appendChild(item);
+  });
 }
 
 function confirmarExcluirCompraFatura(l){
@@ -2629,6 +2938,17 @@ function preencherSelectContaChequeEspecial(){
   if(valorAtual) sel.value = valorAtual;
 }
 
+function preencherSelectContaBancaria(){
+  const sel = $('#m-conta-bancaria');
+  const valorAtual = sel.value;
+  sel.innerHTML = '<option value="">Selecione a conta</option>';
+  contasBancarias.forEach(conta=>{
+    const opt = document.createElement('option'); opt.value = conta.nome; opt.textContent = conta.nome;
+    sel.appendChild(opt);
+  });
+  if(valorAtual) sel.value = valorAtual;
+}
+
 function preencherSelectsPessoa(){
   const selects = [$('#m-pessoa'), $('#novo-cartao-titular')].filter(Boolean);
   selects.forEach(sel=>{
@@ -2819,6 +3139,7 @@ function abrirModalLancamento(lancamentoExistente){
   $('#m-forma').value = lancamentoExistente ? (lancamentoExistente.formaPagamento||'dinheiro') : 'dinheiro';
   $('#m-cartao').value = lancamentoExistente ? (lancamentoExistente.cartao||'') : '';
   $('#m-conta-cheque-especial').value = lancamentoExistente ? (lancamentoExistente.contaChequeEspecial||'') : '';
+  $('#m-conta-bancaria').value = lancamentoExistente ? (lancamentoExistente.contaBancaria||'') : '';
   $('#m-data-vencimento').value = lancamentoExistente ? (lancamentoExistente.dataVencimento||'') : '';
   $('#m-data-referencia').value = lancamentoExistente ? (lancamentoExistente.dataReferencia||'') : '';
   $('#m-parcelas').value = 1;
@@ -2873,9 +3194,11 @@ function atualizarVisibilidadeFormaPagamento(){
   const mostrarCredito = tipoSelecionadoModal==='despesa' && forma === 'credito';
   const mostrarFinanciamento = tipoSelecionadoModal==='despesa' && forma === 'financiamento';
   const mostrarChequeEspecial = tipoSelecionadoModal==='despesa' && forma === 'cheque_especial';
+  const mostrarContaBancaria = tipoSelecionadoModal==='receita' || (tipoSelecionadoModal==='despesa' && forma === 'debito');
   $('#campo-credito').style.display = mostrarCredito ? 'flex' : 'none';
   $('#campo-financiamento').style.display = mostrarFinanciamento ? 'flex' : 'none';
   $('#campo-cheque-especial').style.display = mostrarChequeEspecial ? 'block' : 'none';
+  $('#campo-conta-bancaria').style.display = mostrarContaBancaria ? 'block' : 'none';
   $('#dica-financiamento').style.display = mostrarFinanciamento ? 'block' : 'none';
   if(!mostrarCredito) $('#ajuda-valor-parcela').style.display = 'none';
   if(!modoEdicaoId){
@@ -2922,6 +3245,7 @@ async function salvarLancamento(){
   const formaPagamento = tipoSelecionadoModal==='despesa' ? $('#m-forma').value : 'dinheiro';
   const cartao = formaPagamento==='credito' ? $('#m-cartao').value : '';
   const contaChequeEspecial = formaPagamento==='cheque_especial' ? $('#m-conta-cheque-especial').value : '';
+  const contaBancaria = (tipoSelecionadoModal==='receita' || formaPagamento==='debito') ? $('#m-conta-bancaria').value : '';
   const dataVencimento = tipoSelecionadoModal==='despesa' ? $('#m-data-vencimento').value : '';
   const dataReferencia = tipoSelecionadoModal==='despesa' ? $('#m-data-referencia').value : '';
   const recorrenteMarcado = !modoEdicaoId && formaPagamento!=='financiamento' && $('#m-recorrente').checked;
@@ -2940,6 +3264,7 @@ async function salvarLancamento(){
   if(!data){ mostrarToast('Informe a data.'); return; }
   if(formaPagamento==='credito' && !cartao){ mostrarToast('Selecione o cartão utilizado.'); return; }
   if(formaPagamento==='cheque_especial' && !contaChequeEspecial){ mostrarToast('Selecione a conta utilizada.'); return; }
+  if(formaPagamento==='debito' && !contaBancaria){ mostrarToast('Selecione a conta bancária utilizada.'); return; }
   if(formaPagamento==='financiamento'){
     if(!parcelaAtualFin || !parcelaTotalFin){ mostrarToast('Informe a parcela atual e o total de parcelas.'); return; }
     if(parcelaAtualFin > parcelaTotalFin){ mostrarToast('A parcela atual não pode ser maior que o total de parcelas.'); return; }
@@ -2953,7 +3278,7 @@ async function salvarLancamento(){
       const existente = lancamentos.find(l=>l.id===modoEdicaoId) || {};
       const payload = {
         descricao, valor: valorDigitado, data, categoria, pessoa, tipo: tipoSelecionadoModal,
-        formaPagamento, cartao, contaChequeEspecial,
+        formaPagamento, cartao, contaChequeEspecial, contaBancaria,
         parcelaAtual: formaPagamento==='financiamento' ? parcelaAtualFin : (existente.parcelaAtual || 1),
         parcelaTotal: formaPagamento==='financiamento' ? parcelaTotalFin : (existente.parcelaTotal || 1),
         grupoParcelaId: existente.grupoParcelaId || '',
@@ -2983,7 +3308,7 @@ async function salvarLancamento(){
         const payload = {
           descricao: descricao+' (parcela '+(i+1)+'/'+parcelasParaGerar+')',
           valor: valorDigitado, data: dataParcela, categoria, pessoa, tipo:'despesa',
-          formaPagamento, cartao, contaChequeEspecial, parcelaAtual:i+1, parcelaTotal:parcelasParaGerar, grupoParcelaId:grupoId,
+          formaPagamento, cartao, contaChequeEspecial, contaBancaria:'', parcelaAtual:i+1, parcelaTotal:parcelasParaGerar, grupoParcelaId:grupoId,
           recorrente:false, dataVencimento:'', dataReferencia:'',
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
         };
@@ -3001,7 +3326,7 @@ async function salvarLancamento(){
         const payload = {
           descricao: descricao+' (parcela '+numeroParcela+'/'+parcelaTotalFin+')',
           valor: valorDigitado, data: dataParcela, categoria, pessoa, tipo:'despesa',
-          formaPagamento, cartao:'', contaChequeEspecial:'', parcelaAtual:numeroParcela, parcelaTotal:parcelaTotalFin, grupoParcelaId:grupoId,
+          formaPagamento, cartao:'', contaChequeEspecial:'', contaBancaria:'', parcelaAtual:numeroParcela, parcelaTotal:parcelaTotalFin, grupoParcelaId:grupoId,
           recorrente:false, dataVencimento:'', dataReferencia:'',
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
         };
@@ -3016,7 +3341,7 @@ async function salvarLancamento(){
         const dataRec = somarMeses(data, i);
         const payload = {
           descricao, valor: valorDigitado, data: dataRec, categoria, pessoa, tipo: tipoSelecionadoModal,
-          formaPagamento, cartao, contaChequeEspecial, parcelaAtual:i+1, parcelaTotal:mesesRecorrencia, grupoParcelaId:grupoId,
+          formaPagamento, cartao, contaChequeEspecial, contaBancaria, parcelaAtual:i+1, parcelaTotal:mesesRecorrencia, grupoParcelaId:grupoId,
           recorrente:true, tipoRecorrencia, dataVencimento, dataReferencia,
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
         };
@@ -3027,7 +3352,7 @@ async function salvarLancamento(){
     } else {
       const payload = {
         descricao, valor: valorDigitado, data, categoria, pessoa, tipo: tipoSelecionadoModal,
-        formaPagamento, cartao, contaChequeEspecial, parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+        formaPagamento, cartao, contaChequeEspecial, contaBancaria, parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
         recorrente:false, dataVencimento, dataReferencia,
         pago: pagoSelecionadoModal==='pago'
       };
@@ -3355,6 +3680,7 @@ $('#btn-cancelar-pagar-cheque-especial').addEventListener('click', fecharModalPa
 $('#btn-confirmar-pagar-cheque-especial').addEventListener('click', confirmarPagamentoChequeEspecial);
 $('#pce-juros').addEventListener('input', atualizarResumoPagamentoChequeEspecial);
 $('#btn-add-conta-ce').addEventListener('click', adicionarContaChequeEspecial);
+$('#btn-add-conta-bancaria').addEventListener('click', adicionarContaBancaria);
 $('#nova-conta-ce-limite').addEventListener('keydown', e=>{ if(e.key==='Enter') adicionarContaChequeEspecial(); });
 
 $('#btn-cancelar-juros-atraso').addEventListener('click', fecharModalJurosAtraso);
