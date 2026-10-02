@@ -236,6 +236,30 @@
     border-radius:6px;
   }
   .item-lancamento .acoes button:hover{ background:var(--sage); color:var(--forest-dark); }
+  .item-lancamento{ border-left:4px solid transparent; }
+  .item-lancamento.venc-vencido{ border-left-color:var(--rose); background:rgba(166,67,47,0.045); }
+  .item-lancamento.venc-proximo{ border-left-color:var(--gold); background:rgba(184,134,59,0.06); }
+  .item-lancamento.venc-pago{ border-left-color:var(--forest); }
+  .item-lancamento .chk-selecao{ margin-right:4px; width:17px; height:17px; flex-shrink:0; cursor:pointer; }
+  .barra-selecao-lote{
+    display:none; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--sage); border-radius:var(--radius-sm); padding:8px 12px; margin-bottom:10px;
+    font-family:-apple-system,sans-serif; font-size:0.82rem; color:var(--forest-dark);
+  }
+  .barra-selecao-lote.ativa{ display:flex; }
+  .barra-selecao-lote button{
+    background:var(--rose); color:#fff; border:none; border-radius:6px; padding:6px 12px;
+    font-size:0.8rem; font-family:-apple-system,sans-serif; cursor:pointer;
+  }
+  .legenda-cores-vencimento{
+    display:flex; gap:14px; flex-wrap:wrap; font-family:-apple-system,sans-serif; font-size:0.74rem;
+    color:var(--ink-soft); margin-bottom:10px;
+  }
+  .legenda-cores-vencimento span{ display:inline-flex; align-items:center; gap:5px; }
+  .legenda-cores-vencimento .bolinha{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .lista-selecionavel-chip{ display:flex; align-items:center; gap:8px; padding:8px 4px; border-bottom:1px solid var(--line); font-family:-apple-system,sans-serif; font-size:0.88rem; }
+  .lista-selecionavel-chip:last-child{ border-bottom:none; }
+  .lista-selecionavel-chip input{ width:17px; height:17px; flex-shrink:0; }
   .vazio{ text-align:center; color:var(--ink-soft); font-family:-apple-system,sans-serif; font-size:0.88rem; padding:30px 10px; border:1px dashed var(--line); border-radius:var(--radius); background:rgba(90,107,99,0.03); }
 
   .filtros{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
@@ -650,6 +674,15 @@
               </select>
             </div>
             <div class="resumo-lista-lancamentos" id="vg-resumo-lista"></div>
+            <div class="legenda-cores-vencimento">
+              <span><span class="bolinha" style="background:var(--rose);"></span>Vencido</span>
+              <span><span class="bolinha" style="background:var(--gold);"></span>Vence em até 7 dias</span>
+              <span><span class="bolinha" style="background:var(--forest);"></span>Pago</span>
+            </div>
+            <div class="barra-selecao-lote" id="barra-selecao-vg">
+              <span id="texto-selecao-vg">0 selecionado(s)</span>
+              <button type="button" id="btn-excluir-selecionados-vg">Excluir selecionados</button>
+            </div>
             <div class="lista-lancamentos" id="vg-lista-lancamentos"></div>
           </div>
         </div>
@@ -675,6 +708,15 @@
       <div class="resumo-lista-lancamentos" id="resumo-lista-lancamentos"></div>
       <button class="btn-quitar-lote" id="btn-abrir-quitar-lote">Quitar várias parcelas</button>
       <div class="bloco">
+        <div class="legenda-cores-vencimento">
+          <span><span class="bolinha" style="background:var(--rose);"></span>Vencido</span>
+          <span><span class="bolinha" style="background:var(--gold);"></span>Vence em até 7 dias</span>
+          <span><span class="bolinha" style="background:var(--forest);"></span>Pago</span>
+        </div>
+        <div class="barra-selecao-lote" id="barra-selecao-lancamentos">
+          <span id="texto-selecao-lancamentos">0 selecionado(s)</span>
+          <button type="button" id="btn-excluir-selecionados-lancamentos">Excluir selecionados</button>
+        </div>
         <div class="lista-lancamentos" id="lista-lancamentos">
           <div class="vazio">Nenhum lançamento neste mês ainda.</div>
         </div>
@@ -754,6 +796,7 @@
           </div>
           <button id="btn-add-cartao">Adicionar cartão</button>
         </div>
+        <button type="button" class="btn-secundario" id="btn-abrir-excluir-cartoes" style="width:100%;margin-top:12px;">Excluir vários cartões</button>
       </div>
       <div class="bloco" id="bloco-fatura-detalhe" style="display:none;">
         <div class="seletor-mes" style="margin-bottom:16px;">
@@ -882,6 +925,7 @@
           <input type="text" id="nova-categoria" placeholder="Nova categoria...">
           <button id="btn-add-categoria">Adicionar</button>
         </div>
+        <button type="button" class="btn-secundario" id="btn-abrir-excluir-categorias" style="width:100%;margin-top:12px;">Excluir várias categorias</button>
       </div>
     </section>
 
@@ -902,6 +946,13 @@
         <p class="sans" style="font-size:0.78rem;color:var(--ink-soft);margin-top:10px;">
           Todo mundo continua entrando com o mesmo usuário e senha da família. Esses nomes servem só para identificar quem lançou cada receita ou despesa.
         </p>
+      </div>
+      <div class="bloco">
+        <h2>Cópia de segurança<span class="sub">Baixe um arquivo com todos os seus dados</span></h2>
+        <p class="sans" style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:10px;">
+          Gera um arquivo no seu computador com todas as receitas, despesas, categorias, cartões, contas e pessoas cadastradas — guarde-o como uma cópia extra, fora do sistema.
+        </p>
+        <button class="btn-secundario" id="btn-exportar-dados" style="width:100%;">Exportar meus dados (backup)</button>
       </div>
       <div class="bloco">
         <h2>Sobre este sistema</h2>
@@ -1136,6 +1187,12 @@
   <div class="caixa-modal caixa-modal-larga">
     <h3>Quitar várias parcelas</h3>
     <p class="sans" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:12px;">Selecione as despesas pendentes que deseja marcar como pagas.</p>
+    <div class="campo-modal" style="margin-bottom:10px;">
+      <label for="lote-filtro-lancamento">Mostrar boletos de um lançamento específico (opcional)</label>
+      <select id="lote-filtro-lancamento">
+        <option value="">Todos os lançamentos pendentes</option>
+      </select>
+    </div>
     <div class="lote-topo">
       <label class="sans" style="font-size:0.82rem;display:flex;align-items:center;gap:6px;">
         <input type="checkbox" id="lote-selecionar-todos"> Selecionar todas
@@ -1151,6 +1208,34 @@
     <div class="acoes-modal">
       <button class="cancelar" id="btn-cancelar-quitar-lote">Cancelar</button>
       <button class="confirmar" id="btn-confirmar-quitar-lote">Quitar selecionadas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL EXCLUIR VÁRIAS CATEGORIAS ===================== -->
+<div class="fundo-modal" id="modal-excluir-categorias">
+  <div class="caixa-modal caixa-modal-larga">
+    <h3>Excluir várias categorias</h3>
+    <p class="sans" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:12px;">Lançamentos que usam essas categorias não serão apagados, só ficarão sem categoria válida.</p>
+    <div id="lista-excluir-categorias" class="lote-lista"></div>
+    <span class="sans" id="total-selecionado-categorias" style="font-size:0.82rem;color:var(--ink-soft);display:block;margin-top:10px;">0 selecionada(s)</span>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-cancelar-excluir-categorias">Cancelar</button>
+      <button class="confirmar" id="btn-confirmar-excluir-categorias" style="background:var(--rose);">Excluir selecionadas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL EXCLUIR VÁRIOS CARTÕES ===================== -->
+<div class="fundo-modal" id="modal-excluir-cartoes">
+  <div class="caixa-modal caixa-modal-larga">
+    <h3>Excluir vários cartões</h3>
+    <p class="sans" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:12px;">Lançamentos que usam esses cartões não serão apagados, só ficarão sem cartão vinculado.</p>
+    <div id="lista-excluir-cartoes" class="lote-lista"></div>
+    <span class="sans" id="total-selecionado-cartoes" style="font-size:0.82rem;color:var(--ink-soft);display:block;margin-top:10px;">0 selecionado(s)</span>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-cancelar-excluir-cartoes">Cancelar</button>
+      <button class="confirmar" id="btn-confirmar-excluir-cartoes" style="background:var(--rose);">Excluir selecionados</button>
     </div>
   </div>
 </div>
@@ -1213,6 +1298,10 @@ let diaSelecionadoCalendario = null;
 let filtroStatusCalendario = 'pendente';
 let tipoSelecionadoModal = "despesa";
 let pagoSelecionadoModal = "pendente";
+let lancamentosSelecionadosExclusao = new Set();
+let vgSelecionadosExclusao = new Set();
+let categoriasSelecionadasExclusao = new Set();
+let cartoesSelecionadosExclusao = new Set();
 
 const $ = (sel, ctx) => (ctx||document).querySelector(sel);
 const $all = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
@@ -1582,18 +1671,29 @@ function renderizarListaLancamentos(){
   if(tipoFiltro) doMes = doMes.filter(l=> l.tipo === tipoFiltro);
   if(statusFiltro==='pago') doMes = doMes.filter(ehPago);
   if(statusFiltro==='pendente') doMes = doMes.filter(l=>!ehPago(l));
+  doMes = ordenarPorVencimento(doMes);
 
   renderizarResumoListaLancamentos(doMes, statusFiltro);
 
+  const idsVisiveis = new Set(doMes.map(l=>l.id));
+  lancamentosSelecionadosExclusao.forEach(id=>{ if(!idsVisiveis.has(id)) lancamentosSelecionadosExclusao.delete(id); });
+
   container.innerHTML = '';
-  if(doMes.length===0){ container.innerHTML = '<div class="vazio">Nenhum lançamento encontrado.</div>'; return; }
+  if(doMes.length===0){ container.innerHTML = '<div class="vazio">Nenhum lançamento encontrado.</div>'; atualizarBarraSelecaoLancamentos(); return; }
   if(busca){
     const aviso = document.createElement('div'); aviso.className='vazio'; aviso.style.cssText='padding:4px 0 10px;font-size:0.78rem;';
     aviso.textContent = 'Mostrando resultados de todos os meses para "'+($('#busca-lancamento').value||'')+'" ('+doMes.length+' encontrado'+(doMes.length>1?'s':'')+').';
     container.appendChild(aviso);
   }
   doMes.forEach(l=>{
-    const item = document.createElement('div'); item.className='item-lancamento';
+    const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l);
+    const chk = document.createElement('input'); chk.type='checkbox'; chk.className='chk-selecao';
+    chk.checked = lancamentosSelecionadosExclusao.has(l.id);
+    chk.addEventListener('change', ()=>{
+      if(chk.checked) lancamentosSelecionadosExclusao.add(l.id); else lancamentosSelecionadosExclusao.delete(l.id);
+      atualizarBarraSelecaoLancamentos();
+    });
+    item.appendChild(chk);
     const esq = document.createElement('div'); esq.className='esq';
     const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
     const meta = document.createElement('div'); meta.className='meta';
@@ -1657,6 +1757,32 @@ function renderizarListaLancamentos(){
 
     item.appendChild(esq); item.appendChild(dir);
     container.appendChild(item);
+  });
+  atualizarBarraSelecaoLancamentos();
+}
+function atualizarBarraSelecaoLancamentos(){
+  const barra = $('#barra-selecao-lancamentos');
+  const n = lancamentosSelecionadosExclusao.size;
+  barra.classList.toggle('ativa', n>0);
+  const selecionados = lancamentos.filter(l=>lancamentosSelecionadosExclusao.has(l.id));
+  const total = selecionados.reduce((s,l)=> s + (Number(l.valor)||0), 0);
+  $('#texto-selecao-lancamentos').textContent = n+' selecionado(s)'+(n>0 ? ' • Total: '+formatarMoeda(total) : '');
+}
+function confirmarExcluirLancamentosSelecionados(){
+  const n = lancamentosSelecionadosExclusao.size;
+  if(n===0) return;
+  abrirConfirmacao('Excluir lançamentos selecionados', 'Isso vai excluir '+n+' lançamento(s) selecionado(s). Esta ação não pode ser desfeita. Deseja continuar?', async ()=>{
+    const ids = Array.from(lancamentosSelecionadosExclusao);
+    try{
+      for(const id of ids){ await excluirDocumento('lancamentos', id); }
+      lancamentos = lancamentos.filter(l=>!ids.includes(l.id));
+      lancamentosSelecionadosExclusao = new Set();
+      fecharConfirmacao();
+      renderizarTudo();
+      mostrarToast(n+' lançamento(s) excluído(s).');
+    }catch(e){
+      mostrarToast('Não foi possível excluir todos os selecionados. Verifique a conexão e tente novamente.');
+    }
   });
 }
 function renderizarResumoListaLancamentos(lista, statusFiltro, seletor){
@@ -1750,19 +1876,30 @@ function renderizarListaVisaoGeral(){
   const catFiltro = $('#vg-filtro-categoria').value;
   const tipoFiltro = $('#vg-filtro-tipo').value;
   const statusFiltro = $('#vg-filtro-status').value;
-  let todos = lancamentos.slice().sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+  let todos = lancamentos.slice();
   if(busca) todos = todos.filter(l=> (l.descricao||'').toLowerCase().includes(busca));
   if(catFiltro) todos = todos.filter(l=> l.categoria === catFiltro);
   if(tipoFiltro) todos = todos.filter(l=> l.tipo === tipoFiltro);
   if(statusFiltro==='pago') todos = todos.filter(ehPago);
   if(statusFiltro==='pendente') todos = todos.filter(l=>!ehPago(l));
+  todos = ordenarPorVencimento(todos);
 
   renderizarResumoListaLancamentos(todos, statusFiltro, '#vg-resumo-lista');
 
+  const idsVisiveisVg = new Set(todos.map(l=>l.id));
+  vgSelecionadosExclusao.forEach(id=>{ if(!idsVisiveisVg.has(id)) vgSelecionadosExclusao.delete(id); });
+
   container.innerHTML = '';
-  if(todos.length===0){ container.innerHTML = '<div class="vazio">Nenhum lançamento encontrado.</div>'; return; }
+  if(todos.length===0){ container.innerHTML = '<div class="vazio">Nenhum lançamento encontrado.</div>'; atualizarBarraSelecaoVg(); return; }
   todos.forEach(l=>{
-    const item = document.createElement('div'); item.className='item-lancamento';
+    const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l);
+    const chk = document.createElement('input'); chk.type='checkbox'; chk.className='chk-selecao';
+    chk.checked = vgSelecionadosExclusao.has(l.id);
+    chk.addEventListener('change', ()=>{
+      if(chk.checked) vgSelecionadosExclusao.add(l.id); else vgSelecionadosExclusao.delete(l.id);
+      atualizarBarraSelecaoVg();
+    });
+    item.appendChild(chk);
     const esq = document.createElement('div'); esq.className='esq';
     const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
     const meta = document.createElement('div'); meta.className='meta';
@@ -1793,6 +1930,32 @@ function renderizarListaVisaoGeral(){
     item.appendChild(esq); item.appendChild(dir);
     container.appendChild(item);
   });
+  atualizarBarraSelecaoVg();
+}
+function atualizarBarraSelecaoVg(){
+  const barra = $('#barra-selecao-vg');
+  const n = vgSelecionadosExclusao.size;
+  barra.classList.toggle('ativa', n>0);
+  const selecionadosVg = lancamentos.filter(l=>vgSelecionadosExclusao.has(l.id));
+  const totalVg = selecionadosVg.reduce((s,l)=> s + (Number(l.valor)||0), 0);
+  $('#texto-selecao-vg').textContent = n+' selecionado(s)'+(n>0 ? ' • Total: '+formatarMoeda(totalVg) : '');
+}
+function confirmarExcluirVgSelecionados(){
+  const n = vgSelecionadosExclusao.size;
+  if(n===0) return;
+  abrirConfirmacao('Excluir lançamentos selecionados', 'Isso vai excluir '+n+' lançamento(s) selecionado(s). Esta ação não pode ser desfeita. Deseja continuar?', async ()=>{
+    const ids = Array.from(vgSelecionadosExclusao);
+    try{
+      for(const id of ids){ await excluirDocumento('lancamentos', id); }
+      lancamentos = lancamentos.filter(l=>!ids.includes(l.id));
+      vgSelecionadosExclusao = new Set();
+      fecharConfirmacao();
+      renderizarTudo();
+      mostrarToast(n+' lançamento(s) excluído(s).');
+    }catch(e){
+      mostrarToast('Não foi possível excluir todos os selecionados. Verifique a conexão e tente novamente.');
+    }
+  });
 }
 
 async function alternarStatusPagamento(l){
@@ -1820,11 +1983,14 @@ async function alternarStatusPagamento(l){
    QUITAR VÁRIAS PARCELAS DE UMA VEZ
 ========================================================================= */
 let itensLoteSelecionados = new Set();
+let loteFiltroDescricao = '';
 
 function abrirModalQuitarLote(){
   itensLoteSelecionados = new Set();
+  loteFiltroDescricao = '';
   $('#lote-juros').value = '';
   $('#lote-selecionar-todos').checked = false;
+  popularFiltroLote();
   renderizarListaLote();
   $('#modal-quitar-lote').classList.add('ativo');
 }
@@ -1836,12 +2002,31 @@ function pendentesParaLote(){
     .sort((a,b)=> (a.data||'').localeCompare(b.data||''));
 }
 
+function descricaoBaseLote(l){
+  return (l.descricao||'(sem descrição)').replace(/\s*\(parcela\s*\d+\/\d+\)\s*$/i,'').trim();
+}
+
+function pendentesParaLoteFiltrado(){
+  const todos = pendentesParaLote();
+  if(!loteFiltroDescricao) return todos;
+  return todos.filter(l=> descricaoBaseLote(l) === loteFiltroDescricao);
+}
+
+function popularFiltroLote(){
+  const select = $('#lote-filtro-lancamento');
+  const pendentes = pendentesParaLote();
+  const nomes = Array.from(new Set(pendentes.map(descricaoBaseLote))).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  select.innerHTML = '<option value="">Todos os lançamentos pendentes</option>' +
+    nomes.map(n=>'<option value="'+n.replace(/"/g,'&quot;')+'">'+n+'</option>').join('');
+  select.value = loteFiltroDescricao;
+}
+
 function renderizarListaLote(){
   const container = $('#lote-lista-pendentes');
-  const pendentes = pendentesParaLote();
+  const pendentes = pendentesParaLoteFiltrado();
   container.innerHTML = '';
   if(pendentes.length===0){
-    container.innerHTML = '<div class="vazio" style="padding:14px;">Nenhuma despesa pendente no momento.</div>';
+    container.innerHTML = '<div class="vazio" style="padding:14px;">'+(loteFiltroDescricao ? 'Nenhum boleto pendente desse lançamento.' : 'Nenhuma despesa pendente no momento.')+'</div>';
   } else {
     pendentes.forEach(l=>{
       const item = document.createElement('label'); item.className='lote-item';
@@ -1865,8 +2050,15 @@ function renderizarListaLote(){
 
 function alternarSelecionarTodosLote(){
   const marcar = $('#lote-selecionar-todos').checked;
-  const pendentes = pendentesParaLote();
-  itensLoteSelecionados = marcar ? new Set(pendentes.map(l=>l.id)) : new Set();
+  const pendentes = pendentesParaLoteFiltrado();
+  if(marcar){ pendentes.forEach(l=> itensLoteSelecionados.add(l.id)); }
+  else { pendentes.forEach(l=> itensLoteSelecionados.delete(l.id)); }
+  renderizarListaLote();
+}
+
+function filtrarListaLotePorLancamento(){
+  loteFiltroDescricao = $('#lote-filtro-lancamento').value;
+  $('#lote-selecionar-todos').checked = false;
   renderizarListaLote();
 }
 
@@ -3808,6 +4000,20 @@ function abrirModalLancamento(lancamentoExistente){
   $('#modal-lancamento').classList.add('ativo');
 }
 function ehPago(l){ return l && l.pago !== false; }
+function dataEfetivaVencimento(l){ return (l && (l.dataVencimento || l.data)) || ''; }
+function classificarCorVencimento(l){
+  if(ehPago(l)) return 'venc-pago';
+  const venc = dataEfetivaVencimento(l);
+  if(!venc) return '';
+  const hojeISO = isoDeData(new Date());
+  if(venc < hojeISO) return 'venc-vencido';
+  const limite = new Date(); limite.setDate(limite.getDate()+7);
+  if(venc <= isoDeData(limite)) return 'venc-proximo';
+  return '';
+}
+function ordenarPorVencimento(lista){
+  return lista.slice().sort((a,b)=> dataEfetivaVencimento(a).localeCompare(dataEfetivaVencimento(b)));
+}
 function fecharModalLancamento(){ $('#modal-lancamento').classList.remove('ativo'); modoEdicaoId = null; }
 function selecionarTipoModal(tipo){
   tipoSelecionadoModal = tipo;
@@ -4147,6 +4353,50 @@ function confirmarExclusaoCategoria(categoria){
   });
 }
 
+function abrirModalExcluirCategorias(){
+  categoriasSelecionadasExclusao = new Set();
+  renderizarListaExcluirCategorias();
+  $('#modal-excluir-categorias').classList.add('ativo');
+}
+function fecharModalExcluirCategorias(){ $('#modal-excluir-categorias').classList.remove('ativo'); }
+function renderizarListaExcluirCategorias(){
+  const container = $('#lista-excluir-categorias');
+  container.innerHTML = '';
+  if(categorias.length===0){ container.innerHTML = '<div class="vazio" style="padding:14px;">Nenhuma categoria cadastrada.</div>'; }
+  categorias.forEach(cat=>{
+    const item = document.createElement('label'); item.className='lote-item';
+    const chk = document.createElement('input'); chk.type='checkbox';
+    chk.checked = categoriasSelecionadasExclusao.has(cat.id);
+    chk.addEventListener('change', ()=>{
+      if(chk.checked) categoriasSelecionadasExclusao.add(cat.id); else categoriasSelecionadasExclusao.delete(cat.id);
+      $('#total-selecionado-categorias').textContent = categoriasSelecionadasExclusao.size+' selecionada(s)';
+    });
+    const desc = document.createElement('div'); desc.className='desc'; desc.textContent = cat.nome;
+    item.appendChild(chk); item.appendChild(desc);
+    container.appendChild(item);
+  });
+  $('#total-selecionado-categorias').textContent = categoriasSelecionadasExclusao.size+' selecionada(s)';
+}
+function confirmarExclusaoCategoriasLote(){
+  const n = categoriasSelecionadasExclusao.size;
+  if(n===0){ mostrarToast('Selecione ao menos uma categoria.'); return; }
+  abrirConfirmacao('Excluir categorias selecionadas', 'Isso vai excluir '+n+' categoria(s). Lançamentos que usam essas categorias não serão apagados, só ficarão sem categoria válida. Deseja continuar?', async ()=>{
+    const ids = Array.from(categoriasSelecionadasExclusao);
+    try{
+      for(const id of ids){ await excluirDocumento('categorias', id); }
+      categorias = categorias.filter(c=>!ids.includes(c.id));
+      categoriasSelecionadasExclusao = new Set();
+      preencherSelectsCategoria();
+      renderizarCategorias();
+      fecharConfirmacao();
+      fecharModalExcluirCategorias();
+      mostrarToast(n+' categoria(s) excluída(s).');
+    }catch(e){
+      mostrarToast('Não foi possível excluir todas as categorias selecionadas. Verifique a conexão e tente novamente.');
+    }
+  });
+}
+
 /* =========================================================================
    CARTÕES DE CRÉDITO
 ========================================================================= */
@@ -4197,6 +4447,51 @@ function confirmarExclusaoCartao(cartao){
       mostrarToast('Cartão excluído.');
     }catch(e){
       mostrarToast('Não foi possível excluir o cartão. Verifique a conexão e tente novamente.');
+    }
+  });
+}
+
+function abrirModalExcluirCartoes(){
+  cartoesSelecionadosExclusao = new Set();
+  renderizarListaExcluirCartoes();
+  $('#modal-excluir-cartoes').classList.add('ativo');
+}
+function fecharModalExcluirCartoes(){ $('#modal-excluir-cartoes').classList.remove('ativo'); }
+function renderizarListaExcluirCartoes(){
+  const container = $('#lista-excluir-cartoes');
+  container.innerHTML = '';
+  if(cartoes.length===0){ container.innerHTML = '<div class="vazio" style="padding:14px;">Nenhum cartão cadastrado.</div>'; }
+  cartoes.forEach(cartao=>{
+    const item = document.createElement('label'); item.className='lote-item';
+    const chk = document.createElement('input'); chk.type='checkbox';
+    chk.checked = cartoesSelecionadosExclusao.has(cartao.id);
+    chk.addEventListener('change', ()=>{
+      if(chk.checked) cartoesSelecionadosExclusao.add(cartao.id); else cartoesSelecionadosExclusao.delete(cartao.id);
+      $('#total-selecionado-cartoes').textContent = cartoesSelecionadosExclusao.size+' selecionado(s)';
+    });
+    const desc = document.createElement('div'); desc.className='desc'; desc.textContent = cartao.nome;
+    item.appendChild(chk); item.appendChild(desc);
+    container.appendChild(item);
+  });
+  $('#total-selecionado-cartoes').textContent = cartoesSelecionadosExclusao.size+' selecionado(s)';
+}
+function confirmarExclusaoCartoesLote(){
+  const n = cartoesSelecionadosExclusao.size;
+  if(n===0){ mostrarToast('Selecione ao menos um cartão.'); return; }
+  abrirConfirmacao('Excluir cartões selecionados', 'Isso vai excluir '+n+' cartão(ões). Lançamentos que usam esses cartões não serão apagados, só ficarão sem cartão vinculado. Deseja continuar?', async ()=>{
+    const ids = Array.from(cartoesSelecionadosExclusao);
+    try{
+      for(const id of ids){ await excluirDocumento('cartoes', id); }
+      cartoes = cartoes.filter(c=>!ids.includes(c.id));
+      if(cartaoSelecionadoFaturaId && ids.includes(cartaoSelecionadoFaturaId)) cartaoSelecionadoFaturaId = null;
+      cartoesSelecionadosExclusao = new Set();
+      preencherSelectCartao();
+      renderizarPainelFaturas();
+      fecharConfirmacao();
+      fecharModalExcluirCartoes();
+      mostrarToast(n+' cartão(ões) excluído(s).');
+    }catch(e){
+      mostrarToast('Não foi possível excluir todos os cartões selecionados. Verifique a conexão e tente novamente.');
     }
   });
 }
@@ -4282,6 +4577,29 @@ function sair(){
   $('#app').classList.remove('ativo');
   $('#tela-login').style.display = 'flex';
   $('#in-senha').value = '';
+}
+
+/* =========================================================================
+   CÓPIA DE SEGURANÇA (EXPORTAR DADOS)
+========================================================================= */
+function exportarDados(){
+  const dados = {
+    exportadoEm: new Date().toISOString(),
+    lancamentos, categorias, cartoes, pessoas,
+    contasBancarias, contasChequeEspecial, pagamentosFatura
+  };
+  const texto = JSON.stringify(dados, null, 2);
+  const blob = new Blob([texto], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const hoje = isoDeData(new Date());
+  a.href = url;
+  a.download = 'contas-de-casa-backup-'+hoje+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  mostrarToast('Arquivo de backup gerado.');
 }
 
 /* =========================================================================
@@ -4379,27 +4697,37 @@ $('#btn-abrir-quitar-lote').addEventListener('click', abrirModalQuitarLote);
 $('#btn-cancelar-quitar-lote').addEventListener('click', fecharModalQuitarLote);
 $('#btn-confirmar-quitar-lote').addEventListener('click', confirmarQuitarLote);
 $('#lote-selecionar-todos').addEventListener('change', alternarSelecionarTodosLote);
+$('#lote-filtro-lancamento').addEventListener('change', filtrarListaLotePorLancamento);
 $('#lote-juros').addEventListener('input', atualizarResumoLote);
 
 $('#busca-lancamento').addEventListener('input', renderizarListaLancamentos);
 $('#filtro-categoria').addEventListener('change', renderizarListaLancamentos);
 $('#filtro-tipo').addEventListener('change', renderizarListaLancamentos);
 $('#filtro-status').addEventListener('change', renderizarListaLancamentos);
+$('#btn-excluir-selecionados-lancamentos').addEventListener('click', confirmarExcluirLancamentosSelecionados);
 
 $('#vg-busca').addEventListener('input', renderizarListaVisaoGeral);
 $('#vg-filtro-categoria').addEventListener('change', renderizarListaVisaoGeral);
 $('#vg-filtro-tipo').addEventListener('change', renderizarListaVisaoGeral);
 $('#vg-filtro-status').addEventListener('change', renderizarListaVisaoGeral);
+$('#btn-excluir-selecionados-vg').addEventListener('click', confirmarExcluirVgSelecionados);
 $('#filtro-status-calendario').addEventListener('change', (e)=>{
   filtroStatusCalendario = e.target.value;
   renderizarCalendario();
 });
 $('#btn-add-categoria').addEventListener('click', adicionarCategoria);
 $('#nova-categoria').addEventListener('keydown', e=>{ if(e.key==='Enter') adicionarCategoria(); });
+$('#btn-abrir-excluir-categorias').addEventListener('click', abrirModalExcluirCategorias);
+$('#btn-cancelar-excluir-categorias').addEventListener('click', fecharModalExcluirCategorias);
+$('#btn-confirmar-excluir-categorias').addEventListener('click', confirmarExclusaoCategoriasLote);
 $('#btn-add-pessoa').addEventListener('click', adicionarPessoa);
 $('#nova-pessoa').addEventListener('keydown', e=>{ if(e.key==='Enter') adicionarPessoa(); });
 $('#btn-add-cartao').addEventListener('click', adicionarCartao);
 $('#novo-cartao-vencimento').addEventListener('keydown', e=>{ if(e.key==='Enter') adicionarCartao(); });
+$('#btn-abrir-excluir-cartoes').addEventListener('click', abrirModalExcluirCartoes);
+$('#btn-cancelar-excluir-cartoes').addEventListener('click', fecharModalExcluirCartoes);
+$('#btn-confirmar-excluir-cartoes').addEventListener('click', confirmarExclusaoCartoesLote);
+$('#btn-exportar-dados').addEventListener('click', exportarDados);
 
 /* Tenta retomar sessão salva */
 (async function tentarRetomarSessao(){
