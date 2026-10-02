@@ -1110,6 +1110,7 @@
     <p class="sans" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;">Isso identifica quem lançou cada receita ou despesa.</p>
     <div class="opcoes-quem" id="opcoes-quem-modal"></div>
     <p class="sans" id="erro-quem-usa" style="font-size:0.8rem;color:var(--rose);margin-top:10px;"></p>
+    <button type="button" class="btn-secundario" id="btn-ir-cadastrar-pessoa" style="width:100%;margin-top:14px;display:none;">Ir para Ajustes e cadastrar</button>
   </div>
 </div>
 
@@ -1336,9 +1337,11 @@ async function chamarFirestore(caminho, opcoes, tentouRenovar){
 
 async function listarDocumentos(colecao){
   const resp = await chamarFirestore('/'+colecao+'?pageSize=300');
-  if(!resp.ok) return [];
-  const dados = await resp.json();
-  if(!dados.documents) return [];
+  const dados = await resp.json().catch(()=>null);
+  if(!resp.ok){
+    throw new Error((dados && dados.error && dados.error.message) || 'Não foi possível carregar os dados. Verifique a conexão e tente novamente.');
+  }
+  if(!dados || !dados.documents) return [];
   return dados.documents.map(deCamposFirestore);
 }
 async function criarDocumento(colecao, campos){
@@ -4259,11 +4262,19 @@ function abrirModalQuemUsa(){
     });
     container.appendChild(btn);
   });
+  const btnIrCadastrar = $('#btn-ir-cadastrar-pessoa');
   if(pessoas.length===0){
     $('#erro-quem-usa').textContent = 'Cadastre ao menos uma pessoa em Ajustes.';
+    btnIrCadastrar.style.display = 'block';
+  } else {
+    btnIrCadastrar.style.display = 'none';
   }
   $('#modal-quem-usa').classList.add('ativo');
 }
+$('#btn-ir-cadastrar-pessoa').addEventListener('click', ()=>{
+  $('#modal-quem-usa').classList.remove('ativo');
+  irParaPainel('painel-ajustes');
+});
 
 function sair(){
   idToken = null; refreshToken = null; uidUsuario = null; pessoaAtual = null;
