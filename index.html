@@ -427,6 +427,7 @@
     transition: opacity .2s var(--ease), visibility .2s var(--ease);
   }
   .fundo-modal.ativo{ opacity:1; visibility:visible; pointer-events:auto; }
+  #modal-confirmar{ z-index:80; }
   .caixa-modal{
     background:var(--paper); width:100%; max-width:480px; border-radius:18px 18px 0 0; padding:22px 20px 26px;
     max-height:88vh; overflow-y:auto; transform:translateY(18px); transition: transform .25s var(--ease);
@@ -4334,10 +4335,11 @@ async function salvarLancamento(){
 
 function confirmarExclusaoLancamento(){
   abrirConfirmacao('Excluir lançamento', 'Esta ação não pode ser desfeita. Deseja excluir este lançamento?', async ()=>{
+    const idExcluir = modoEdicaoId;
+    fecharModalLancamento();
     try{
-      await excluirDocumento('lancamentos', modoEdicaoId);
-      lancamentos = lancamentos.filter(l=>l.id!==modoEdicaoId);
-      fecharModalLancamento();
+      await excluirDocumento('lancamentos', idExcluir);
+      lancamentos = lancamentos.filter(l=>l.id!==idExcluir);
       renderizarTudo();
       mostrarToast('Lançamento excluído.');
     }catch(e){ mostrarToast('Não foi possível excluir.'); }
@@ -4389,12 +4391,12 @@ function confirmarExclusaoFuturas(){
       ? 'Isso vai excluir este mês e todos os meses seguintes ainda não pagos desta recorrência. Os meses já passados continuam no histórico. Deseja continuar?'
       : 'Isso vai excluir esta parcela e todas as parcelas futuras ainda não pagas desta mesma compra. As parcelas já passadas continuam no histórico. Deseja continuar?',
     async ()=>{
+      fecharModalLancamento();
       try{
         const doGrupo = lancamentos.filter(l=> l.grupoParcelaId===atual.grupoParcelaId && Number(l.parcelaAtual) >= Number(atual.parcelaAtual));
         for(const l of doGrupo){ await excluirDocumento('lancamentos', l.id); }
         const idsExcluir = new Set(doGrupo.map(l=>l.id));
         lancamentos = lancamentos.filter(l=>!idsExcluir.has(l.id));
-        fecharModalLancamento();
         renderizarTudo();
         mostrarToast(ehRecorrencia ? 'Repetições futuras excluídas.' : 'Parcelas futuras excluídas.');
       }catch(e){
