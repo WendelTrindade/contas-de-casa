@@ -2893,20 +2893,16 @@ function confirmarExclusaoPessoasLote(){
   const nomesSelecionados = pessoas.filter(p=>pessoasSelecionadasExclusao.has(p.id)).map(p=>p.nome);
   const afetados = lancamentos.filter(l=>nomesSelecionados.includes(l.pessoa)).length;
   const avisoAfetados = afetados>0 ? ' '+afetados+' lançamento(s) vão continuar com esse nome mesmo assim.' : '';
+  fecharModalExcluirPessoas();
   abrirConfirmacao('Excluir pessoas selecionadas', 'Isso vai excluir '+n+' pessoa(s).'+avisoAfetados+' Deseja continuar?', async ()=>{
     const ids = Array.from(pessoasSelecionadasExclusao);
-    try{
-      for(const id of ids){ await excluirDocumento('pessoas', id); }
-      pessoas = pessoas.filter(p=>!ids.includes(p.id));
-      pessoasSelecionadasExclusao = new Set();
-      preencherSelectsPessoa();
+    mostrarToast('Excluindo '+ids.length+' item(ns)...');
+    const { apagados, erro } = await excluirVariosDocumentos('pessoas', ids);
+    pessoas = pessoas.filter(x=>!apagados.has(x.id));
+    pessoasSelecionadasExclusao = new Set();
+    preencherSelectsPessoa();
       renderizarPessoas();
-      fecharConfirmacao();
-      fecharModalExcluirPessoas();
-      mostrarToast(n+' pessoa(s) excluída(s).');
-    }catch(e){
-      mostrarToast('Não foi possível excluir todas as pessoas selecionadas. Verifique a conexão e tente novamente.');
-    }
+    mostrarToast(erro ? 'Não foi possível excluir todos ('+apagados.size+' de '+n+' excluídos). Verifique a conexão e tente novamente.' : n+' pessoa(s) excluída(s).');
   });
 }
 
@@ -4411,6 +4407,17 @@ function confirmarExclusaoFuturas(){
 /* =========================================================================
    MODAL DE CONFIRMAÇÃO GENÉRICO
 ========================================================================= */
+async function excluirVariosDocumentos(colecao, ids){
+  const apagados = new Set();
+  let erro = false;
+  const TAMANHO_LOTE = 10;
+  for(let i=0; i<ids.length; i+=TAMANHO_LOTE){
+    const resultados = await Promise.allSettled(ids.slice(i, i+TAMANHO_LOTE).map(id=> excluirDocumento(colecao, id).then(()=>id)));
+    resultados.forEach(r=>{ if(r.status==='fulfilled') apagados.add(r.value); else erro = true; });
+  }
+  return { apagados, erro };
+}
+
 let acaoConfirmacaoPendente = null;
 function abrirConfirmacao(titulo, texto, aoConfirmar){
   $('#titulo-confirmar').textContent = titulo;
@@ -4501,20 +4508,16 @@ function confirmarExclusaoCategoriasLote(){
   const nomesSelecionados = categorias.filter(c=>categoriasSelecionadasExclusao.has(c.id)).map(c=>c.nome);
   const afetados = lancamentos.filter(l=>nomesSelecionados.includes(l.categoria)).length;
   const avisoAfetados = afetados>0 ? ' '+afetados+' lançamento(s) ficarão sem categoria e você pode atribuir uma nova categoria a eles depois, editando cada um.' : '';
+  fecharModalExcluirCategorias();
   abrirConfirmacao('Excluir categorias selecionadas', 'Isso vai excluir '+n+' categoria(s).'+avisoAfetados+' Deseja continuar?', async ()=>{
     const ids = Array.from(categoriasSelecionadasExclusao);
-    try{
-      for(const id of ids){ await excluirDocumento('categorias', id); }
-      categorias = categorias.filter(c=>!ids.includes(c.id));
-      categoriasSelecionadasExclusao = new Set();
-      preencherSelectsCategoria();
+    mostrarToast('Excluindo '+ids.length+' item(ns)...');
+    const { apagados, erro } = await excluirVariosDocumentos('categorias', ids);
+    categorias = categorias.filter(x=>!apagados.has(x.id));
+    categoriasSelecionadasExclusao = new Set();
+    preencherSelectsCategoria();
       renderizarCategorias();
-      fecharConfirmacao();
-      fecharModalExcluirCategorias();
-      mostrarToast(n+' categoria(s) excluída(s).');
-    }catch(e){
-      mostrarToast('Não foi possível excluir todas as categorias selecionadas. Verifique a conexão e tente novamente.');
-    }
+    mostrarToast(erro ? 'Não foi possível excluir todos ('+apagados.size+' de '+n+' excluídos). Verifique a conexão e tente novamente.' : n+' categoria(s) excluída(s).');
   });
 }
 
@@ -4614,21 +4617,17 @@ function confirmarExclusaoCartoesLote(){
   const nomesSelecionados = cartoes.filter(c=>cartoesSelecionadosExclusao.has(c.id)).map(c=>c.nome);
   const afetados = lancamentos.filter(l=>nomesSelecionados.includes(l.cartao)).length;
   const avisoAfetados = afetados>0 ? ' '+afetados+' lançamento(s) ficarão sem cartão vinculado e você pode atribuir um novo cartão a eles depois, editando cada um.' : '';
+  fecharModalExcluirCartoes();
   abrirConfirmacao('Excluir cartões selecionados', 'Isso vai excluir '+n+' cartão(ões).'+avisoAfetados+' Deseja continuar?', async ()=>{
     const ids = Array.from(cartoesSelecionadosExclusao);
-    try{
-      for(const id of ids){ await excluirDocumento('cartoes', id); }
-      cartoes = cartoes.filter(c=>!ids.includes(c.id));
-      if(cartaoSelecionadoFaturaId && ids.includes(cartaoSelecionadoFaturaId)) cartaoSelecionadoFaturaId = null;
+    mostrarToast('Excluindo '+ids.length+' item(ns)...');
+    const { apagados, erro } = await excluirVariosDocumentos('cartoes', ids);
+    cartoes = cartoes.filter(x=>!apagados.has(x.id));
+    if(cartaoSelecionadoFaturaId && ids.includes(cartaoSelecionadoFaturaId) && apagados.has(cartaoSelecionadoFaturaId)) cartaoSelecionadoFaturaId = null;
       cartoesSelecionadosExclusao = new Set();
-      preencherSelectCartao();
+    preencherSelectCartao();
       renderizarPainelFaturas();
-      fecharConfirmacao();
-      fecharModalExcluirCartoes();
-      mostrarToast(n+' cartão(ões) excluído(s).');
-    }catch(e){
-      mostrarToast('Não foi possível excluir todos os cartões selecionados. Verifique a conexão e tente novamente.');
-    }
+    mostrarToast(erro ? 'Não foi possível excluir todos ('+apagados.size+' de '+n+' excluídos). Verifique a conexão e tente novamente.' : n+' cartão(ões) excluído(s).');
   });
 }
 
