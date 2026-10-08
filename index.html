@@ -158,6 +158,9 @@
   .cartao-resumo.despesa .valor{ color:var(--rose); }
   .cartao-resumo.saldo{ border-left-color:var(--gold); }
   .cartao-resumo.saldo .valor{ color:var(--gold); }
+  .cartao-resumo .detalhe{ font-family:-apple-system,sans-serif; font-size:0.7rem; color:var(--ink-soft); margin-top:4px; line-height:1.3; }
+  .grade-resumo.quatro{ grid-template-columns:repeat(2,1fr); }
+  @media (min-width:760px){ .grade-resumo.quatro{ grid-template-columns:repeat(4,1fr); } }
   .cartao-resumo.receita .rotulo::before{ content:'↑ '; }
   .cartao-resumo.despesa .rotulo::before{ content:'↓ '; }
   .delta-resumo{
@@ -428,6 +431,13 @@
   }
   .fundo-modal.ativo{ opacity:1; visibility:visible; pointer-events:auto; }
   #modal-confirmar{ z-index:80; }
+  .contexto-pagamento{ font-family:-apple-system,sans-serif; font-size:0.8rem; border-radius:var(--radius-sm); padding:9px 11px; margin-bottom:14px; background:var(--sage); color:var(--forest-dark); line-height:1.45; }
+  .contexto-pagamento .linha{ display:flex; justify-content:space-between; gap:10px; }
+  .contexto-pagamento .titulo{ font-weight:600; margin-bottom:3px; }
+  .contexto-pagamento .nota{ margin-top:4px; font-size:0.76rem; opacity:.9; }
+  .contexto-pagamento.alerta{ background:var(--gold-soft); color:#7A5A20; }
+  .contexto-pagamento.critico{ background:var(--rose-soft); color:var(--rose); }
+
   .caixa-modal{
     background:var(--paper); width:100%; max-width:480px; border-radius:18px 18px 0 0; padding:22px 20px 26px;
     max-height:88vh; overflow-y:auto; transform:translateY(18px); transition: transform .25s var(--ease);
@@ -626,18 +636,24 @@
 
     <!-- VISÃO GERAL -->
     <section class="painel" id="painel-visao-geral">
-      <div class="grade-resumo">
+      <div class="grade-resumo quatro">
         <div class="cartao-resumo receita">
-          <div class="rotulo">Total de receitas (geral)</div>
+          <div class="rotulo" id="vg-rotulo-receitas">Receitas do mês</div>
           <div class="valor" id="vg-total-receitas">R$ 0,00</div>
         </div>
         <div class="cartao-resumo despesa">
-          <div class="rotulo">Total de despesas (geral)</div>
+          <div class="rotulo" id="vg-rotulo-despesas">Despesas do mês</div>
           <div class="valor" id="vg-total-despesas">R$ 0,00</div>
         </div>
+        <div class="cartao-resumo despesa">
+          <div class="rotulo">Pendente de meses anteriores</div>
+          <div class="valor" id="vg-pendente-anterior">R$ 0,00</div>
+          <div class="detalhe" id="vg-pendente-anterior-detalhe">Nada pendente</div>
+        </div>
         <div class="cartao-resumo saldo">
-          <div class="rotulo">Saldo geral</div>
+          <div class="rotulo">Saldo do mês (com pendências)</div>
           <div class="valor" id="vg-saldo-geral">R$ 0,00</div>
+          <div class="detalhe" id="vg-saldo-detalhe">&nbsp;</div>
         </div>
       </div>
 
@@ -652,8 +668,8 @@
             </div>
           </div>
           <div class="bloco">
-            <h2>Despesas por categoria<span class="sub">Somando todos os meses já lançados</span></h2>
-            <div id="vg-ranking-categorias"><div class="vazio">Sem despesas lançadas ainda.</div></div>
+            <h2>Despesas por categoria<span class="sub">Somente as despesas do mês escolhido</span></h2>
+            <div id="vg-ranking-categorias"><div class="vazio">Sem despesas lançadas neste mês.</div></div>
           </div>
         </div>
 
@@ -1039,6 +1055,13 @@
         <input type="number" id="m-parcelas" min="1" max="48" value="1">
       </div>
     </div>
+    <div class="campo-modal" id="campo-modo-valor" style="display:none;">
+      <label for="m-valor-modo">O valor digitado acima é</label>
+      <select id="m-valor-modo">
+        <option value="parcela">O valor de cada parcela</option>
+        <option value="total">O valor total da compra (o sistema divide pelas parcelas)</option>
+      </select>
+    </div>
     <div class="linha-2" id="campo-financiamento" style="display:none;">
       <div class="campo-modal">
         <label for="m-fin-parcela-atual">Parcela atual</label>
@@ -1090,6 +1113,7 @@
     </div>
     <div class="sans" id="info-parcela-existente" style="display:none;font-size:0.8rem;color:var(--ink-soft);background:var(--sage);padding:8px 10px;border-radius:6px;margin-bottom:14px;"></div>
     <div class="sans" id="ajuda-valor-parcela" style="display:none;font-size:0.78rem;color:var(--ink-soft);margin-top:-8px;margin-bottom:14px;"></div>
+    <div class="contexto-pagamento" id="painel-contexto-pagamento" style="display:none;"></div>
     <div class="acoes-modal">
       <button class="cancelar" id="btn-cancelar-lancamento">Cancelar</button>
       <button class="confirmar" id="btn-salvar-lancamento">Salvar</button>
@@ -1858,15 +1882,39 @@ function confirmarExcluirLancamentoGeral(l){
    VISÃO GERAL (todos os lançamentos, de todos os meses)
 ========================================================================= */
 function renderizarVisaoGeral(){
-  const totalReceitas = lancamentos.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
-  const totalDespesas = lancamentos.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
-  $('#vg-total-receitas').textContent = (totalReceitas>0?'+ ':'') + formatarMoeda(totalReceitas);
-  $('#vg-total-despesas').textContent = (totalDespesas>0?'- ':'') + formatarMoeda(totalDespesas);
-  $('#vg-saldo-geral').textContent = formatarMoeda(totalReceitas-totalDespesas);
+  // Valores do mês escolhido (pela data do lançamento) + tudo que ficou
+  // pendente (sem pagar/receber) em meses anteriores a ele.
+  const chaveAtual = chaveMes(mesReferencia);
+  const nomeDoMes = capitalizar(nomeMes(mesReferencia));
+  const doMes = lancamentos.filter(l=> (l.data||'').slice(0,7) === chaveAtual);
+  const pendentesAnteriores = lancamentos.filter(l=>{
+    const chaveLanc = (l.data||'').slice(0,7);
+    return chaveLanc && chaveLanc < chaveAtual && !ehPago(l);
+  });
+  const soma = (lista, tipo)=> lista.filter(l=>l.tipo===tipo).reduce((s,l)=>s+Number(l.valor||0),0);
+  const receitasMes = soma(doMes,'receita');
+  const despesasMes = soma(doMes,'despesa');
+  const despesasPendentes = soma(pendentesAnteriores,'despesa');
+  const receitasPendentes = soma(pendentesAnteriores,'receita');
+  const saldo = (receitasMes + receitasPendentes) - (despesasMes + despesasPendentes);
+
+  $('#vg-rotulo-receitas').textContent = 'Receitas de '+nomeDoMes;
+  $('#vg-rotulo-despesas').textContent = 'Despesas de '+nomeDoMes;
+  $('#vg-total-receitas').textContent = (receitasMes>0?'+ ':'') + formatarMoeda(receitasMes);
+  $('#vg-total-despesas').textContent = (despesasMes>0?'- ':'') + formatarMoeda(despesasMes);
+  $('#vg-pendente-anterior').textContent = (despesasPendentes>0?'- ':'') + formatarMoeda(despesasPendentes);
+  const qtdDesp = pendentesAnteriores.filter(l=>l.tipo==='despesa').length;
+  const qtdRec = pendentesAnteriores.filter(l=>l.tipo==='receita').length;
+  const partes = [];
+  if(qtdDesp>0) partes.push(qtdDesp+' despesa(s) sem pagar');
+  if(qtdRec>0) partes.push(qtdRec+' receita(s) a receber ('+formatarMoeda(receitasPendentes)+')');
+  $('#vg-pendente-anterior-detalhe').textContent = partes.length ? partes.join(' • ') : 'Nada pendente';
+  $('#vg-saldo-geral').textContent = formatarMoeda(saldo);
+  $('#vg-saldo-detalhe').textContent = (despesasPendentes>0 || receitasPendentes>0) ? 'Já considera as pendências anteriores' : ' ';
 
   renderizarGraficoVisaoGeral();
 
-  const todasDespesas = lancamentos.filter(l=>l.tipo==='despesa');
+  const todasDespesas = doMes.filter(l=>l.tipo==='despesa');
   const alvoRanking = $('#vg-ranking-categorias');
   alvoRanking.innerHTML = '';
   alvoRanking.appendChild(criarBlocoCategorias(todasDespesas));
@@ -1911,7 +1959,13 @@ function renderizarListaVisaoGeral(){
   const catFiltro = $('#vg-filtro-categoria').value;
   const tipoFiltro = $('#vg-filtro-tipo').value;
   const statusFiltro = $('#vg-filtro-status').value;
-  let todos = lancamentos.slice();
+  // Sem busca: mostra só o mês escolhido + o que ficou sem pagar/receber de meses anteriores.
+  // Com busca: procura em todos os meses.
+  const chaveAtualVg = chaveMes(mesReferencia);
+  let todos = busca ? lancamentos.slice() : lancamentos.filter(l=>{
+    const chv = (l.data||'').slice(0,7);
+    return chv === chaveAtualVg || (chv && chv < chaveAtualVg && !ehPago(l));
+  });
   if(busca) todos = todos.filter(l=> (l.descricao||'').toLowerCase().includes(busca));
   if(catFiltro) todos = todos.filter(l=> l.categoria === catFiltro);
   if(tipoFiltro) todos = todos.filter(l=> l.tipo === tipoFiltro);
@@ -4062,6 +4116,7 @@ function abrirModalLancamento(lancamentoExistente){
   $('#m-data-vencimento').value = lancamentoExistente ? (lancamentoExistente.dataVencimento||'') : '';
   $('#m-data-referencia').value = lancamentoExistente ? (lancamentoExistente.dataReferencia||'') : '';
   $('#m-parcelas').value = 1;
+  $('#m-valor-modo').value = 'parcela';
   $('#m-fin-parcela-atual').value = (lancamentoExistente && lancamentoExistente.formaPagamento==='financiamento') ? (lancamentoExistente.parcelaAtual||'') : '';
   $('#m-fin-parcela-total').value = (lancamentoExistente && lancamentoExistente.formaPagamento==='financiamento') ? (lancamentoExistente.parcelaTotal||'') : '';
   $('#m-recorrente').checked = false;
@@ -4121,6 +4176,7 @@ function selecionarPagoModal(status){
   pagoSelecionadoModal = status;
   $('#pago-pendente').classList.toggle('sel-pendente', status==='pendente');
   $('#pago-pago').classList.toggle('sel-pago', status==='pago');
+  atualizarAjudaValorParcela();
 }
 function atualizarVisibilidadeFormaPagamento(){
   const forma = $('#m-forma').value;
@@ -4132,6 +4188,7 @@ function atualizarVisibilidadeFormaPagamento(){
   $('#campo-financiamento').style.display = mostrarFinanciamento ? 'flex' : 'none';
   $('#campo-cheque-especial').style.display = mostrarChequeEspecial ? 'block' : 'none';
   $('#campo-conta-bancaria').style.display = mostrarContaBancaria ? 'block' : 'none';
+  $('#campo-datas-extras').style.display = (tipoSelecionadoModal==='despesa' && (forma==='dinheiro' || forma==='financiamento')) ? 'flex' : 'none';
   $('#dica-financiamento').style.display = mostrarFinanciamento ? 'block' : 'none';
   if(!mostrarCredito) $('#ajuda-valor-parcela').style.display = 'none';
   if(!modoEdicaoId){
@@ -4161,15 +4218,139 @@ function atualizarAjudaValorParcela(){
   const parcelasVisiveis = $('#campo-parcelas').style.display !== 'none' && $('#campo-credito').style.display !== 'none';
   const parcelas = Math.max(1, parseInt($('#m-parcelas').value||'1',10));
   const valor = parseFloat($('#m-valor').value)||0;
+  const permiteModo = parcelasVisiveis && parcelas>1 && !modoEdicaoId;
+  $('#campo-modo-valor').style.display = permiteModo ? 'block' : 'none';
+  if(!permiteModo) $('#m-valor-modo').value = 'parcela';
   if(parcelasVisiveis && parcelas>1 && valor>0){
+    const v = valoresDaOperacaoModal();
     ajuda.style.display = 'block';
-    ajuda.textContent = 'Valor de cada parcela. Total da compra: '+formatarMoeda(valor*parcelas)+' em '+parcelas+'x.';
+    ajuda.textContent = v.dividido
+      ? 'Cada parcela: '+formatarMoeda(v.valorParcela)+(v.ultima!==v.valorParcela ? ' (a última: '+formatarMoeda(v.ultima)+')' : '')+'. Total da compra: '+formatarMoeda(v.total)+' em '+parcelas+'x.'
+      : 'Valor de cada parcela. Total da compra: '+formatarMoeda(valor*parcelas)+' em '+parcelas+'x.';
   } else {
     ajuda.style.display = 'none';
   }
+  atualizarPainelContextoPagamento();
 }
 
-async function salvarLancamento(){
+
+/* =========================================================================
+   CONTEXTO DE PAGAMENTO NO LANÇAMENTO (limite, saldo, parcelas e fatura)
+========================================================================= */
+function parcelasEfetivasModal(){
+  if(modoEdicaoId || tipoSelecionadoModal!=='despesa') return 1;
+  const forma = $('#m-forma').value;
+  if(forma!=='financiamento' && $('#m-recorrente').checked) return Math.max(2, Math.min(60, parseInt($('#m-recorrencia-meses').value||'12',10)));
+  if(forma==='credito') return Math.max(1, parseInt($('#m-parcelas').value||'1',10));
+  return 1;
+}
+function valoresDaOperacaoModal(){
+  const digitado = parseFloat($('#m-valor').value)||0;
+  const n = parcelasEfetivasModal();
+  const parcelado = !modoEdicaoId && tipoSelecionadoModal==='despesa' && $('#m-forma').value==='credito' && !$('#m-recorrente').checked;
+  if(parcelado && n>1 && $('#m-valor-modo').value==='total'){
+    const vp = Math.round(digitado/n*100)/100;
+    const ultima = Math.round((digitado - vp*(n-1))*100)/100;
+    return {valorParcela: vp, ultima, n, total: digitado, dividido: true};
+  }
+  return {valorParcela: digitado, ultima: digitado, n, total: digitado*n, dividido: false};
+}
+function calcularContextoPagamentoModal(){
+  const forma = $('#m-forma').value;
+  const v = valoresDaOperacaoModal();
+  const pago = pagoSelecionadoModal==='pago';
+  const novo = Math.max(0, v.total - (pago ? v.valorParcela : 0));
+  const usadoSem = (filtro)=> lancamentos
+    .filter(l=> l.tipo==='despesa' && !ehPago(l) && l.id!==modoEdicaoId && filtro(l))
+    .reduce((s,l)=>s+Number(l.valor||0),0);
+  if(tipoSelecionadoModal==='despesa' && forma==='credito'){
+    const cartao = cartoes.find(c=>c.nome===$('#m-cartao').value);
+    if(!cartao) return {tipo:'dica', texto:'Escolha o cartão para ver o limite disponível.'};
+    const limite = Number(cartao.limite||0);
+    const usado = usadoSem(l=>l.formaPagamento==='credito' && l.cartao===cartao.nome);
+    return {tipo:'limite', rotulo:'Cartão '+cartao.nome, rotuloLimite:'Limite do cartão', cartao, limite, usado, novo, depois: limite-usado-novo, v};
+  }
+  if(tipoSelecionadoModal==='despesa' && forma==='cheque_especial'){
+    const conta = contasChequeEspecial.find(c=>c.nome===$('#m-conta-cheque-especial').value);
+    if(!conta) return {tipo:'dica', texto:'Escolha a conta para ver o limite do cheque especial.'};
+    const limite = Number(conta.limite||0);
+    const usado = usadoSem(l=>l.formaPagamento==='cheque_especial' && l.contaChequeEspecial===conta.nome);
+    return {tipo:'limite', rotulo:'Cheque especial — '+conta.nome, rotuloLimite:'Limite do cheque especial', limite, usado, novo, depois: limite-usado-novo, v};
+  }
+  const ehContaBanco = tipoSelecionadoModal==='receita' || (tipoSelecionadoModal==='despesa' && forma==='debito');
+  if(ehContaBanco){
+    const conta = contasBancarias.find(c=>c.nome===$('#m-conta-bancaria').value);
+    if(!conta) return {tipo:'dica', texto:'Escolha a conta bancária para ver o saldo.'};
+    let saldo = calcularSaldoContaBancaria(conta).saldoAtual;
+    const existente = modoEdicaoId ? lancamentos.find(l=>l.id===modoEdicaoId) : null;
+    if(existente && ehPago(existente) && existente.contaBancaria===conta.nome && (existente.tipo==='receita' || existente.formaPagamento==='debito')){
+      saldo -= (existente.tipo==='receita' ? 1 : -1) * Number(existente.valor||0);
+    }
+    const valor = v.valorParcela;
+    const efeito = pago ? (tipoSelecionadoModal==='receita' ? valor : -valor) : 0;
+    return {tipo:'saldo', rotulo:'Conta '+conta.nome, saldo, depois: saldo + efeito, pago, valor};
+  }
+  return null;
+}
+function textoExcessoLimiteModal(){
+  if(tipoSelecionadoModal!=='despesa') return '';
+  const c = calcularContextoPagamentoModal();
+  if(!c || c.tipo!=='limite' || c.limite<=0 || c.novo<=0) return '';
+  if(c.depois < 0){
+    return 'Esta compra de '+formatarMoeda(c.novo)+' passa do limite em '+formatarMoeda(-c.depois)+' ('+c.rotulo+': limite '+formatarMoeda(c.limite)+', já usado '+formatarMoeda(c.usado)+'). Deseja lançar mesmo assim?';
+  }
+  return '';
+}
+function atualizarPainelContextoPagamento(){
+  const el = $('#painel-contexto-pagamento');
+  const c = calcularContextoPagamentoModal();
+  if(!c){ el.style.display='none'; return; }
+  el.className = 'contexto-pagamento';
+  const linha = (rot, val, forte)=>'<div class="linha"><span>'+rot+'</span><span>'+(forte?'<b>'+val+'</b>':val)+'</span></div>';
+  let html = '';
+  if(c.tipo==='dica'){
+    html = c.texto;
+  } else if(c.tipo==='saldo'){
+    html = '<div class="titulo">'+c.rotulo+'</div>'
+      + linha('Saldo atual', formatarMoeda(c.saldo))
+      + (c.pago ? linha('Saldo depois deste lançamento', formatarMoeda(c.depois), true)
+               : '<div class="nota">Como está pendente, ainda não mexe no saldo da conta.</div>');
+    if(c.pago && c.depois<0) el.classList.add('alerta');
+  } else {
+    html = '<div class="titulo">'+c.rotulo+'</div>';
+    if(c.limite<=0){
+      html += '<div class="nota">Nenhum limite cadastrado para este item — cadastre o limite para receber avisos.</div>';
+    } else {
+      html += linha(c.rotuloLimite, formatarMoeda(c.limite))
+            + linha('Já usado (pendente)', formatarMoeda(c.usado));
+      if(c.novo>0) html += linha('Este lançamento', formatarMoeda(c.novo));
+      html += linha('Disponível depois', formatarMoeda(c.depois), true);
+      const pct = (c.usado + c.novo) / c.limite * 100;
+      if(c.novo>0 && c.depois<0){ el.classList.add('critico'); html += '<div class="nota">⚠ Passa do limite em '+formatarMoeda(-c.depois)+'.</div>'; }
+      else if(c.novo>0 && pct>=80){ el.classList.add('alerta'); html += '<div class="nota">Atenção: vai usar '+Math.round(pct)+'% do limite.</div>'; }
+    }
+    if(c.cartao && c.v.n>1){
+      const cartao = c.cartao;
+      const dataIni = $('#m-data').value;
+      if(dataIni && Number(cartao.diaFechamento)>0){
+        const descr = (iso)=>{
+          const ciclo = calcularCicloFatura(cartao.diaFechamento, dataISOparaData(iso));
+          let t = 'fatura que fecha em '+formatarDataAno(ciclo.fim);
+          if(Number(cartao.diaVencimento)>0){
+            const venc = proximaOcorrenciaDia(cartao.diaVencimento, new Date(ciclo.fim.getFullYear(), ciclo.fim.getMonth(), ciclo.fim.getDate()+1));
+            t += ' (vence '+formatarDataAno(venc)+')';
+          }
+          return t;
+        };
+        html += '<div class="nota">1ª parcela: '+descr(dataIni)+'<br>'+c.v.n+'ª parcela: '+descr(somarMeses(dataIni, c.v.n-1))+'</div>';
+      }
+    }
+  }
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+async function salvarLancamento(ignorarAvisoLimite){
   const descricao = $('#m-descricao').value.trim();
   const valorDigitado = parseFloat($('#m-valor').value);
   const data = $('#m-data').value;
@@ -4202,6 +4383,12 @@ async function salvarLancamento(){
     if(!parcelaAtualFin || !parcelaTotalFin){ mostrarToast('Informe a parcela atual e o total de parcelas.'); return; }
     if(parcelaAtualFin > parcelaTotalFin){ mostrarToast('A parcela atual não pode ser maior que o total de parcelas.'); return; }
   }
+
+  if(ignorarAvisoLimite !== true){
+    const avisoLimite = textoExcessoLimiteModal();
+    if(avisoLimite){ abrirConfirmacao('Passa do limite', avisoLimite, ()=>salvarLancamento(true)); return; }
+  }
+  const valoresOp = valoresDaOperacaoModal();
 
   let propagarParcelas = null;
   const btn = $('#btn-salvar-lancamento');
@@ -4240,7 +4427,7 @@ async function salvarLancamento(){
         const dataParcela = somarMeses(data, i);
         const payload = {
           descricao: descricao+' (parcela '+(i+1)+'/'+parcelasParaGerar+')',
-          valor: valorDigitado, data: dataParcela, categoria, pessoa, tipo:'despesa',
+          valor: (i===parcelasParaGerar-1 ? valoresOp.ultima : valoresOp.valorParcela), data: dataParcela, categoria, pessoa, tipo:'despesa',
           formaPagamento, cartao, contaChequeEspecial, contaBancaria:'', parcelaAtual:i+1, parcelaTotal:parcelasParaGerar, grupoParcelaId:grupoId,
           recorrente:false, dataVencimento:'', dataReferencia:'',
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
@@ -4874,6 +5061,8 @@ $('#btn-salvar-lancamento').addEventListener('click', salvarLancamento);
 $('#btn-excluir-lancamento').addEventListener('click', confirmarExclusaoLancamento);
 $('#btn-excluir-futuras').addEventListener('click', confirmarExclusaoFuturas);
 $('#m-forma').addEventListener('change', atualizarVisibilidadeFormaPagamento);
+['#m-cartao','#m-conta-cheque-especial','#m-conta-bancaria','#m-valor-modo'].forEach(sel=>$(sel).addEventListener('change', atualizarAjudaValorParcela));
+['#m-data','#m-recorrencia-meses'].forEach(sel=>$(sel).addEventListener('input', atualizarAjudaValorParcela));
 $('#m-parcelas').addEventListener('input', atualizarAjudaValorParcela);
 $('#m-valor').addEventListener('input', atualizarAjudaValorParcela);
 $('#m-recorrente').addEventListener('change', atualizarVisibilidadeRecorrencia);
