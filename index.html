@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Contas de Casa — Controle Financeiro Familiar</title>
+<title>Contas de Casa v2.1.1 — Controle Financeiro Familiar</title>
 <style>
   :root{
     --bg: #F6F3EC;
@@ -519,6 +519,27 @@
   .toast.mostrar{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   .carregando{ text-align:center; padding:40px; color:var(--ink-soft); font-family:-apple-system,sans-serif; }
+
+  /* Versão do sistema + quadro "Em aberto do mês" */
+  .selo-versao{ display:inline-block; font-family:-apple-system,sans-serif; font-size:0.62rem; font-weight:600; letter-spacing:.03em; padding:2px 7px; border-radius:20px; background:var(--gold-soft); color:#7A5A20; margin-left:8px; vertical-align:middle; }
+  .ea-topo{ display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap; }
+  .ea-rotulo{ font-family:-apple-system,sans-serif; font-size:0.74rem; color:var(--ink-soft); }
+  .ea-valor{ font-size:1.9rem; font-weight:700; color:var(--rose); letter-spacing:-.01em; line-height:1.1; }
+  .ea-valor.quitado{ color:var(--forest); font-size:1.3rem; }
+  .ea-pct{ font-family:-apple-system,sans-serif; font-size:0.78rem; color:var(--ink-soft); text-align:right; }
+  .ea-barra{ height:10px; border-radius:6px; background:var(--rose-soft); overflow:hidden; margin:10px 0 6px; }
+  .ea-barra > div{ height:100%; background:var(--forest); border-radius:6px; transition:width .3s; }
+  .ea-legenda{ font-family:-apple-system,sans-serif; font-size:0.72rem; color:var(--ink-soft); margin-bottom:12px; }
+  .ea-grade{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  @media (min-width:760px){ .ea-grade{ grid-template-columns:repeat(4,1fr); } }
+  .ea-item{ border-radius:10px; padding:9px 11px; border-left:4px solid var(--sage); background:rgba(0,0,0,.03); font-family:-apple-system,sans-serif; }
+  .ea-item .r{ display:block; font-size:0.7rem; color:var(--ink-soft); }
+  .ea-item b{ display:block; font-size:1.05rem; margin-top:2px; }
+  .ea-item small{ display:block; font-size:0.68rem; color:var(--ink-soft); margin-top:1px; }
+  .ea-item.vencido{ border-left-color:var(--rose); } .ea-item.vencido b{ color:var(--rose); }
+  .ea-item.proximo{ border-left-color:var(--gold); } .ea-item.proximo b{ color:#7A5A20; }
+  .ea-item.depois{ border-left-color:var(--sage); }
+  .ea-item.receber{ border-left-color:var(--forest); } .ea-item.receber b{ color:var(--forest); }
 </style>
 </head>
 <body>
@@ -529,6 +550,7 @@
     <div class="brasao">🏠</div>
     <h1>Contas de Casa</h1>
     <p class="legenda">Controle financeiro da família</p>
+    <p class="legenda" style="font-size:0.72rem;">Versão 2.1.1 — 08/10/2026</p>
 
     <div class="campo">
       <label for="in-usuario">Usuário</label>
@@ -549,7 +571,7 @@
   <header class="topo">
     <div class="titulo">
       <div class="icone">🏠</div>
-      <h1>Contas de Casa</h1>
+      <h1>Contas de Casa<span class="selo-versao" title="Versão do sistema: 2.1.1 — 08/10/2026">v2.1.1</span></h1>
     </div>
     <div class="usuario-chip">
       <span id="rotulo-pessoa-atual">—</span>
@@ -636,6 +658,21 @@
 
     <!-- VISÃO GERAL -->
     <section class="painel" id="painel-visao-geral">
+      <div class="bloco" id="vg-em-aberto">
+        <h2><span id="vg-ea-titulo">Em aberto do mês</span><span class="sub">O que ainda falta pagar e receber neste mês</span></h2>
+        <div class="ea-topo">
+          <div><div class="ea-rotulo">Falta pagar</div><div class="ea-valor" id="vg-ea-valor">R$ 0,00</div></div>
+          <div class="ea-pct" id="vg-ea-pct"></div>
+        </div>
+        <div class="ea-barra"><div id="vg-ea-barra" style="width:0%"></div></div>
+        <div class="ea-legenda" id="vg-ea-legenda"></div>
+        <div class="ea-grade">
+          <div class="ea-item vencido"><span class="r">Vencido</span><b id="vg-ea-vencido">R$ 0,00</b><small id="vg-ea-vencido-qtd"></small></div>
+          <div class="ea-item proximo"><span class="r">Vence em até 7 dias</span><b id="vg-ea-proximo">R$ 0,00</b><small id="vg-ea-proximo-qtd"></small></div>
+          <div class="ea-item depois"><span class="r">Vence depois, no mês</span><b id="vg-ea-depois">R$ 0,00</b><small id="vg-ea-depois-qtd"></small></div>
+          <div class="ea-item receber"><span class="r">A receber</span><b id="vg-ea-receber">R$ 0,00</b><small id="vg-ea-receber-qtd"></small></div>
+        </div>
+      </div>
       <div class="grade-resumo quatro">
         <div class="cartao-resumo receita">
           <div class="rotulo" id="vg-rotulo-receitas">Receitas do mês</div>
@@ -644,6 +681,7 @@
         <div class="cartao-resumo despesa">
           <div class="rotulo" id="vg-rotulo-despesas">Despesas do mês</div>
           <div class="valor" id="vg-total-despesas">R$ 0,00</div>
+          <div class="detalhe" id="vg-despesas-detalhe">&nbsp;</div>
         </div>
         <div class="cartao-resumo despesa">
           <div class="rotulo">Pendente de meses anteriores</div>
@@ -660,7 +698,7 @@
       <div class="grade-dashboard">
         <div class="coluna-dashboard">
           <div class="bloco">
-            <h2>Evolução completa<span class="sub">Receitas e despesas em todos os meses já lançados</span></h2>
+            <h2>Evolução completa<span class="sub">Receitas e despesas até o mês atual (meses futuros não entram)</span></h2>
             <div class="grafico-tendencia" id="vg-grafico-tendencia"></div>
             <div class="legenda-tendencia">
               <span><i class="ponto r"></i>Receitas</span>
@@ -675,7 +713,7 @@
 
         <div class="coluna-dashboard">
           <div class="bloco">
-            <h2>Todos os lançamentos<span class="sub">Receitas e despesas de todos os meses, sem filtro de período</span></h2>
+            <h2>Todos os lançamentos<span class="sub">Mês escolhido + o que ficou em aberto de meses anteriores</span></h2>
             <div class="filtros" style="margin-bottom:12px;">
               <input type="text" id="vg-busca" placeholder="Buscar descrição...">
               <select id="vg-filtro-categoria"><option value="">Todas categorias</option></select>
@@ -685,8 +723,8 @@
                 <option value="despesa">Só despesas</option>
               </select>
               <select id="vg-filtro-status">
-                <option value="">Pagos e pendentes (padrão)</option>
-                <option value="pendente">Só pendentes</option>
+                <option value="pendente" selected>Só em aberto (padrão)</option>
+                <option value="">Pagos e em aberto</option>
                 <option value="pago">Só pagos</option>
               </select>
             </div>
@@ -1912,6 +1950,16 @@ function renderizarVisaoGeral(){
   $('#vg-saldo-geral').textContent = formatarMoeda(saldo);
   $('#vg-saldo-detalhe').textContent = (despesasPendentes>0 || receitasPendentes>0) ? 'Já considera as pendências anteriores' : ' ';
 
+  // Meses seguintes ao escolhido NÃO entram nas despesas do mês; só avisamos que existem.
+  const futurosDespesas = lancamentos.filter(l=>{
+    const chv = (l.data||'').slice(0,7);
+    return l.tipo==='despesa' && chv && chv > chaveAtual;
+  });
+  $('#vg-despesas-detalhe').textContent = futurosDespesas.length
+    ? 'Não inclui '+futurosDespesas.length+' lançamento(s) de meses seguintes ('+formatarMoeda(futurosDespesas.reduce((s,l)=>s+Number(l.valor||0),0))+')'
+    : ' ';
+  renderizarEmAbertoMes(doMes, nomeDoMes);
+
   renderizarGraficoVisaoGeral();
 
   const todasDespesas = doMes.filter(l=>l.tipo==='despesa');
@@ -1920,6 +1968,43 @@ function renderizarVisaoGeral(){
   alvoRanking.appendChild(criarBlocoCategorias(todasDespesas));
 
   renderizarListaVisaoGeral();
+}
+function renderizarEmAbertoMes(doMes, nomeDoMes){
+  const hojeISO = isoDeData(new Date());
+  const lim = new Date(); lim.setDate(lim.getDate()+7);
+  const limiteISO = isoDeData(lim);
+  const despesas = doMes.filter(l=>l.tipo==='despesa');
+  const abertas = despesas.filter(l=>!ehPago(l));
+  const totalDesp = despesas.reduce((s,l)=>s+Number(l.valor||0),0);
+  const totalAberto = abertas.reduce((s,l)=>s+Number(l.valor||0),0);
+  const totalPago = totalDesp - totalAberto;
+  const grupo = (fn)=>{ const g = abertas.filter(fn); return { n:g.length, v:g.reduce((s,l)=>s+Number(l.valor||0),0) }; };
+  const venc = grupo(l=> dataEfetivaVencimento(l) < hojeISO);
+  const prox = grupo(l=>{ const d = dataEfetivaVencimento(l); return d >= hojeISO && d <= limiteISO; });
+  const dep  = grupo(l=> dataEfetivaVencimento(l) > limiteISO);
+  const receber = doMes.filter(l=>l.tipo==='receita' && !ehPago(l));
+  const totalReceber = receber.reduce((s,l)=>s+Number(l.valor||0),0);
+  const txt = (n)=> n===0 ? 'nenhuma conta' : (n===1 ? '1 conta' : n+' contas');
+
+  $('#vg-ea-titulo').textContent = 'Em aberto de '+nomeDoMes;
+  const elValor = $('#vg-ea-valor');
+  if(despesas.length===0){
+    elValor.textContent = 'Sem despesas neste mês'; elValor.className = 'ea-valor quitado';
+  } else if(abertas.length===0){
+    elValor.textContent = 'Tudo pago neste mês ✓'; elValor.className = 'ea-valor quitado';
+  } else {
+    elValor.textContent = formatarMoeda(totalAberto); elValor.className = 'ea-valor';
+  }
+  const pct = totalDesp>0 ? Math.round(totalPago/totalDesp*100) : 0;
+  $('#vg-ea-pct').textContent = despesas.length ? pct+'% já pago' : '';
+  $('#vg-ea-barra').style.width = pct+'%';
+  $('#vg-ea-legenda').textContent = despesas.length
+    ? 'Pago '+formatarMoeda(totalPago)+' de '+formatarMoeda(totalDesp)+' em despesas do mês • '+txt(abertas.length)+' em aberto'
+    : '';
+  $('#vg-ea-vencido').textContent = formatarMoeda(venc.v);   $('#vg-ea-vencido-qtd').textContent = txt(venc.n);
+  $('#vg-ea-proximo').textContent = formatarMoeda(prox.v);   $('#vg-ea-proximo-qtd').textContent = txt(prox.n);
+  $('#vg-ea-depois').textContent = formatarMoeda(dep.v);     $('#vg-ea-depois-qtd').textContent = txt(dep.n);
+  $('#vg-ea-receber').textContent = formatarMoeda(totalReceber); $('#vg-ea-receber-qtd').textContent = receber.length===0 ? 'nada a receber' : (receber.length===1 ? '1 receita' : receber.length+' receitas');
 }
 function renderizarGraficoVisaoGeral(){
   const container = $('#vg-grafico-tendencia');
@@ -1931,7 +2016,8 @@ function renderizarGraficoVisaoGeral(){
     if(l.tipo==='receita') mapaReceitas[chave] = (mapaReceitas[chave]||0) + Number(l.valor||0);
     else if(l.tipo==='despesa') mapaDespesas[chave] = (mapaDespesas[chave]||0) + Number(l.valor||0);
   });
-  const todasChaves = Array.from(new Set([...Object.keys(mapaReceitas), ...Object.keys(mapaDespesas)])).sort();
+  const limiteChave = [chaveMes(new Date()), chaveMes(mesReferencia)].sort().pop();
+  const todasChaves = Array.from(new Set([...Object.keys(mapaReceitas), ...Object.keys(mapaDespesas)])).filter(c=>c<=limiteChave).sort();
   if(todasChaves.length===0){
     container.innerHTML = '<div class="vazio">Sem lançamentos ainda.</div>';
     return;
@@ -2170,6 +2256,7 @@ async function confirmarQuitarLote(){
 
   const btn = $('#btn-confirmar-quitar-lote');
   btn.disabled = true; btn.textContent = 'Quitando...';
+  fecharModalQuitarLote(); mostrarToast('Quitando '+selecionados.length+' parcela(s)...');
   try{
     for(const l of selecionados){
       const payload = Object.assign({}, l, {pago:true});
@@ -2235,6 +2322,7 @@ async function confirmarPagamentoComJuros(){
   const juros = parseFloat($('#ja-juros').value)||0;
   const btn = $('#btn-confirmar-juros-atraso');
   btn.disabled = true; btn.textContent = 'Salvando...';
+  fecharModalJurosAtraso(); mostrarToast('Registrando pagamento...');
   try{
     const payload = Object.assign({}, l, {pago:true});
     delete payload.id;
@@ -3606,6 +3694,7 @@ async function confirmarPagamentoFatura(){
 
   const btn = $('#btn-confirmar-pagar-fatura');
   btn.disabled = true; btn.textContent = 'Salvando...';
+  fecharModalPagarFatura(); mostrarToast('Registrando pagamento da fatura...');
   try{
     let lancamentoJurosId = pagamentoExistente ? (pagamentoExistente.lancamentoJurosId||'') : '';
     const nomeDescricaoJuros = 'Juros/taxas fatura '+cartao.nome+' ('+formatarDataCurta(ciclo.fim)+')';
@@ -3725,6 +3814,7 @@ async function confirmarPagamentoChequeEspecial(){
 
   const btn = $('#btn-confirmar-pagar-cheque-especial');
   btn.disabled = true; btn.textContent = 'Salvando...';
+  fecharModalPagarChequeEspecial(); mostrarToast('Registrando pagamento do cheque especial...');
   try{
     for(const l of pendentes){
       const payload = Object.assign({}, l, {pago:true});
