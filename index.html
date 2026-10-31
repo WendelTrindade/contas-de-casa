@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Contas de Casa v2.1.1 — Controle Financeiro Familiar</title>
+<title>Contas de Casa v2.2.1 — Controle Financeiro Familiar</title>
 <style>
   :root{
     --bg: #F6F3EC;
@@ -540,6 +540,37 @@
   .ea-item.proximo{ border-left-color:var(--gold); } .ea-item.proximo b{ color:#7A5A20; }
   .ea-item.depois{ border-left-color:var(--sage); }
   .ea-item.receber{ border-left-color:var(--forest); } .ea-item.receber b{ color:var(--forest); }
+
+  /* ===== v2.2: cores de vencimento + detalhes da parcela ===== */
+  .item-lancamento{ cursor:pointer; }
+  .item-lancamento.venc-vencido{ border-left-color:var(--rose); background:rgba(166,67,47,0.08); }
+  .item-lancamento.venc-proximo{ border-left-color:#D9A21B; background:rgba(217,162,27,0.13); }
+  .item-lancamento.venc-avencer{ border-left-color:#3F9A62; background:rgba(63,154,98,0.08); }
+  .item-lancamento.venc-pago{ border-left-color:#9AA59F; background:transparent; opacity:.8; }
+  .tag-venc{ padding:2px 8px; border-radius:10px; font-weight:600; }
+  .tag-venc.venc-vencido{ background:var(--rose); color:#fff; }
+  .tag-venc.venc-proximo{ background:#F6DE9B; color:#6B4A12; }
+  .tag-venc.venc-avencer{ background:#D3EBDC; color:#1F5C3A; }
+  .tag-venc.venc-pago{ background:#E3E7E5; color:#55615B; }
+  .det-faixa{ padding:9px 12px; border-radius:8px; font-family:-apple-system,sans-serif; font-weight:600; font-size:0.86rem; margin-bottom:12px; }
+  .det-faixa.venc-vencido{ background:var(--rose); color:#fff; }
+  .det-faixa.venc-proximo{ background:#F6DE9B; color:#6B4A12; }
+  .det-faixa.venc-avencer{ background:#D3EBDC; color:#1F5C3A; }
+  .det-faixa.venc-pago{ background:#E3E7E5; color:#55615B; }
+  .det-valor{ font-size:1.8rem; font-weight:700; letter-spacing:-.01em; margin-bottom:8px; }
+  .det-valor.despesa{ color:var(--rose); } .det-valor.receita{ color:var(--forest); }
+  .det-linha{ display:flex; justify-content:space-between; gap:14px; padding:8px 0; border-bottom:1px solid var(--line); font-family:-apple-system,sans-serif; font-size:0.86rem; }
+  .det-linha span:first-child{ color:var(--ink-soft); flex-shrink:0; }
+  .det-linha span:last-child{ text-align:right; font-weight:500; }
+  .det-grupo{ margin-top:14px; }
+  .det-grupo h4{ font-size:0.9rem; color:var(--forest-dark); margin-bottom:4px; }
+  .det-grupo .resumo{ font-family:-apple-system,sans-serif; font-size:0.76rem; color:var(--ink-soft); margin-bottom:8px; }
+  .det-parcela{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:7px 9px; margin-bottom:5px; border-left:4px solid #9AA59F; border-radius:6px; font-family:-apple-system,sans-serif; font-size:0.8rem; cursor:pointer; background:rgba(0,0,0,.025); }
+  .det-parcela.venc-vencido{ border-left-color:var(--rose); } .det-parcela.venc-proximo{ border-left-color:#D9A21B; }
+  .det-parcela.venc-avencer{ border-left-color:#3F9A62; } .det-parcela.atual{ outline:2px solid var(--forest); }
+  .det-parcela .st{ font-size:0.7rem; opacity:.85; }
+  .box-juros-desc{ background:var(--sage); border-radius:var(--radius-sm); padding:10px 12px 2px; margin-bottom:14px; }
+  .box-juros-desc .resumo{ font-family:-apple-system,sans-serif; font-size:0.8rem; color:var(--forest-dark); margin:-4px 0 10px; font-weight:600; }
 </style>
 </head>
 <body>
@@ -550,7 +581,7 @@
     <div class="brasao">🏠</div>
     <h1>Contas de Casa</h1>
     <p class="legenda">Controle financeiro da família</p>
-    <p class="legenda" style="font-size:0.72rem;">Versão 2.1.1 — 08/10/2026</p>
+    <p class="legenda" style="font-size:0.72rem;">Versão 2.2.1 — 31/10/2026</p>
 
     <div class="campo">
       <label for="in-usuario">Usuário</label>
@@ -571,7 +602,7 @@
   <header class="topo">
     <div class="titulo">
       <div class="icone">🏠</div>
-      <h1>Contas de Casa<span class="selo-versao" title="Versão do sistema: 2.1.1 — 08/10/2026">v2.1.1</span></h1>
+      <h1>Contas de Casa<span class="selo-versao" title="Versão do sistema: 2.2.1 — 31/10/2026">v2.2.1</span></h1>
     </div>
     <div class="usuario-chip">
       <span id="rotulo-pessoa-atual">—</span>
@@ -730,9 +761,10 @@
             </div>
             <div class="resumo-lista-lancamentos" id="vg-resumo-lista"></div>
             <div class="legenda-cores-vencimento">
-              <span><span class="bolinha" style="background:var(--rose);"></span>Vencido</span>
-              <span><span class="bolinha" style="background:var(--gold);"></span>Vence em até 7 dias</span>
-              <span><span class="bolinha" style="background:var(--forest);"></span>Pago</span>
+              <span><span class="bolinha" style="background:var(--rose);"></span>Vencida</span>
+              <span><span class="bolinha" style="background:#D9A21B;"></span>Vence em até 7 dias</span>
+              <span><span class="bolinha" style="background:#3F9A62;"></span>A vencer</span>
+          <span><span class="bolinha" style="background:#9AA59F;"></span>Pago</span>
             </div>
             <div class="barra-selecao-lote" id="barra-selecao-vg">
               <span id="texto-selecao-vg">0 selecionado(s)</span>
@@ -764,9 +796,10 @@
       <button class="btn-quitar-lote" id="btn-abrir-quitar-lote">Quitar várias parcelas</button>
       <div class="bloco">
         <div class="legenda-cores-vencimento">
-          <span><span class="bolinha" style="background:var(--rose);"></span>Vencido</span>
-          <span><span class="bolinha" style="background:var(--gold);"></span>Vence em até 7 dias</span>
-          <span><span class="bolinha" style="background:var(--forest);"></span>Pago</span>
+          <span><span class="bolinha" style="background:var(--rose);"></span>Vencida</span>
+          <span><span class="bolinha" style="background:#D9A21B;"></span>Vence em até 7 dias</span>
+          <span><span class="bolinha" style="background:#3F9A62;"></span>A vencer</span>
+          <span><span class="bolinha" style="background:#9AA59F;"></span>Pago</span>
         </div>
         <div class="barra-selecao-lote" id="barra-selecao-lancamentos">
           <span id="texto-selecao-lancamentos">0 selecionado(s)</span>
@@ -1063,6 +1096,19 @@
         <input type="date" id="m-data">
       </div>
     </div>
+    <div id="campo-juros-desconto" class="box-juros-desc" style="display:none;">
+      <div class="linha-2">
+        <div class="campo-modal">
+          <label for="m-juros">Juros / multa pagos (R$)</label>
+          <input type="number" id="m-juros" step="0.01" min="0" placeholder="0,00">
+        </div>
+        <div class="campo-modal">
+          <label for="m-desconto">Desconto obtido (R$)</label>
+          <input type="number" id="m-desconto" step="0.01" min="0" placeholder="0,00">
+        </div>
+      </div>
+      <div class="resumo" id="m-resumo-pagamento"></div>
+    </div>
     <div class="linha-2">
       <div class="campo-modal">
         <label for="m-categoria">Categoria</label>
@@ -1236,14 +1282,39 @@
   </div>
 </div>
 
+<!-- ===================== MODAL DETALHES DO LANÇAMENTO ===================== -->
+<div class="fundo-modal" id="modal-detalhe-lancamento">
+  <div class="caixa-modal">
+    <div id="det-faixa" class="det-faixa"></div>
+    <h3 id="det-titulo" style="margin-bottom:6px;"></h3>
+    <div id="det-valor" class="det-valor"></div>
+    <div id="det-linhas"></div>
+    <div id="det-grupo" class="det-grupo"></div>
+    <div class="acoes-modal" style="margin-top:16px;">
+      <button class="cancelar" id="btn-det-fechar">Fechar</button>
+      <button class="confirmar" id="btn-det-pagar">Registrar pagamento</button>
+    </div>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-det-editar">Editar</button>
+      <button class="excluir" id="btn-det-excluir">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== MODAL JUROS POR ATRASO ===================== -->
 <div class="fundo-modal" id="modal-juros-atraso">
   <div class="caixa-modal">
-    <h3>Marcar como pago</h3>
+    <h3>Registrar pagamento</h3>
     <p class="sans" id="texto-juros-atraso" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;"></p>
-    <div class="campo-modal">
-      <label for="ja-juros">Juros / multa por atraso (R$) — opcional</label>
-      <input type="number" id="ja-juros" step="0.01" min="0" placeholder="0,00">
+    <div class="linha-2">
+      <div class="campo-modal">
+        <label for="ja-juros">Juros / multa (R$) — opcional</label>
+        <input type="number" id="ja-juros" step="0.01" min="0" placeholder="0,00">
+      </div>
+      <div class="campo-modal">
+        <label for="ja-desconto">Desconto (R$) — opcional</label>
+        <input type="number" id="ja-desconto" step="0.01" min="0" placeholder="0,00">
+      </div>
     </div>
     <div class="sans" id="ja-resumo" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:16px;background:var(--sage);padding:8px 10px;border-radius:6px;"></div>
     <div class="acoes-modal">
@@ -1520,13 +1591,22 @@ async function chamarFirestore(caminho, opcoes, tentouRenovar){
 }
 
 async function listarDocumentos(colecao){
-  const resp = await chamarFirestore('/'+colecao+'?pageSize=300');
-  const dados = await resp.json().catch(()=>null);
-  if(!resp.ok){
-    throw new Error((dados && dados.error && dados.error.message) || 'Não foi possível carregar os dados. Verifique a conexão e tente novamente.');
-  }
-  if(!dados || !dados.documents) return [];
-  return dados.documents.map(deCamposFirestore);
+  // O Firestore devolve no máximo 300 documentos por vez; seguimos pedindo as próximas
+  // páginas até acabar, para nenhum lançamento ficar de fora.
+  let todos = [];
+  let pageToken = '';
+  let paginas = 0;
+  do{
+    const resp = await chamarFirestore('/'+colecao+'?pageSize=300'+(pageToken ? '&pageToken='+encodeURIComponent(pageToken) : ''));
+    const dados = await resp.json().catch(()=>null);
+    if(!resp.ok){
+      throw new Error((dados && dados.error && dados.error.message) || 'Não foi possível carregar os dados. Verifique a conexão e tente novamente.');
+    }
+    if(dados && dados.documents) todos = todos.concat(dados.documents.map(deCamposFirestore));
+    pageToken = (dados && dados.nextPageToken) || '';
+    paginas++;
+  } while(pageToken && paginas < 200);
+  return todos;
 }
 async function criarDocumento(colecao, campos){
   const resp = await chamarFirestore('/'+colecao, {method:'POST', body: JSON.stringify(paraCamposFirestore(campos))});
@@ -1781,7 +1861,7 @@ function renderizarListaLancamentos(){
     container.appendChild(aviso);
   }
   doMes.forEach(l=>{
-    const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l);
+    const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l); ligarDetalheLancamento(item, l);
     const chk = document.createElement('input'); chk.type='checkbox'; chk.className='chk-selecao';
     chk.checked = lancamentosSelecionadosExclusao.has(l.id);
     chk.addEventListener('change', ()=>{
@@ -1796,6 +1876,7 @@ function renderizarListaLancamentos(){
     const tagData = document.createElement('span'); tagData.textContent = formatarDataExibicao(l.data);
     const tagPessoa = document.createElement('span'); tagPessoa.className='tag pessoa'; tagPessoa.textContent = l.pessoa||'—';
     meta.appendChild(tagCat); meta.appendChild(tagData); meta.appendChild(tagPessoa);
+    if(!ehPago(l)) meta.appendChild(criarTagVencimento(l));
     if(l.formaPagamento === 'credito'){
       const tagCartao = document.createElement('span'); tagCartao.className='tag';
       tagCartao.textContent = 'Crédito' + (l.cartao ? ' • '+l.cartao : '') + (Number(l.parcelaTotal)>1 ? ' • '+l.parcelaAtual+'/'+l.parcelaTotal : '');
@@ -2067,7 +2148,7 @@ function renderizarListaVisaoGeral(){
   container.innerHTML = '';
   if(todos.length===0){ container.innerHTML = '<div class="vazio">Nenhum lançamento encontrado.</div>'; atualizarBarraSelecaoVg(); return; }
   todos.forEach(l=>{
-    const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l);
+    const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l); ligarDetalheLancamento(item, l);
     const chk = document.createElement('input'); chk.type='checkbox'; chk.className='chk-selecao';
     chk.checked = vgSelecionadosExclusao.has(l.id);
     chk.addEventListener('change', ()=>{
@@ -2082,6 +2163,7 @@ function renderizarListaVisaoGeral(){
     const tagData = document.createElement('span'); tagData.textContent = formatarDataExibicao(l.data);
     const tagPessoa = document.createElement('span'); tagPessoa.className='tag pessoa'; tagPessoa.textContent = l.pessoa||'—';
     meta.appendChild(tagCat); meta.appendChild(tagData); meta.appendChild(tagPessoa);
+    if(!ehPago(l)) meta.appendChild(criarTagVencimento(l));
     const pago = ehPago(l);
     const selo = document.createElement('span');
     selo.className = 'selo-pagamento '+(pago?'pago':'pendente');
@@ -2136,21 +2218,22 @@ function confirmarExcluirVgSelecionados(){
 }
 
 async function alternarStatusPagamento(l){
+  l = lancamentos.find(x=>x.id===l.id) || l;
   const novoStatus = !ehPago(l);
-  const hojeISO = isoDeData(new Date());
-  const vencido = l.tipo==='despesa' && (l.data||'') < hojeISO;
-  if(novoStatus && vencido){
+  if(novoStatus && l.tipo==='despesa'){
     abrirModalJurosAtraso(l);
     return;
   }
   try{
     const payload = Object.assign({}, l, {pago: novoStatus});
     delete payload.id;
+    if(novoStatus){ payload.dataPagamento = isoDeData(new Date()); }
+    else { await limparExtrasPagamento(payload); }
     await atualizarDocumento('lancamentos', l.id, payload);
     const idx = lancamentos.findIndex(x=>x.id===l.id);
-    if(idx>-1) lancamentos[idx] = Object.assign({}, lancamentos[idx], {pago: novoStatus});
+    if(idx>-1) lancamentos[idx] = Object.assign({id:l.id}, payload);
     renderizarTudo();
-    mostrarToast(novoStatus ? 'Marcado como pago.' : 'Marcado como pendente.');
+    mostrarToast(novoStatus ? 'Marcado como recebido.' : 'Marcado como pendente.');
   }catch(e){
     mostrarToast('Não foi possível atualizar o status.');
   }
@@ -2294,8 +2377,11 @@ async function confirmarQuitarLote(){
 let itemJurosAtrasoPendente = null;
 function abrirModalJurosAtraso(l){
   itemJurosAtrasoPendente = l;
-  $('#texto-juros-atraso').textContent = `"${l.descricao||'Lançamento'}" está vencido desde ${formatarDataExibicao(l.data)}. Valor original: ${formatarMoeda(l.valor)}.`;
+  const d = diasParaVencer(l);
+  const situacao = (d!==null && d<0) ? 'está vencido desde '+formatarDataExibicao(dataEfetivaVencimento(l))+'.' : (d===0 ? 'vence hoje.' : 'vence em '+formatarDataExibicao(dataEfetivaVencimento(l))+'.');
+  $('#texto-juros-atraso').textContent = `"${l.descricao||'Lançamento'}" ${situacao} Valor: ${formatarMoeda(l.valor)}. Se pagou juros/multa ou ganhou desconto, informe abaixo.`;
   $('#ja-juros').value = '';
+  $('#ja-desconto').value = '';
   atualizarResumoJurosAtraso();
   $('#modal-juros-atraso').classList.add('ativo');
 }
@@ -2303,7 +2389,8 @@ function fecharModalJurosAtraso(){ $('#modal-juros-atraso').classList.remove('at
 function atualizarResumoJurosAtraso(){
   if(!itemJurosAtrasoPendente) return;
   const juros = parseFloat($('#ja-juros').value)||0;
-  const total = Number(itemJurosAtrasoPendente.valor||0) + juros;
+  const desconto = parseFloat($('#ja-desconto').value)||0;
+  const total = Math.max(0, Number(itemJurosAtrasoPendente.valor||0) + juros - desconto);
   $('#ja-resumo').textContent = 'Total pago: '+formatarMoeda(total);
 }
 async function garantirCategoriaJurosAtraso(){
@@ -2319,39 +2406,28 @@ async function garantirCategoriaJurosAtraso(){
 async function confirmarPagamentoComJuros(){
   if(!itemJurosAtrasoPendente) return;
   const l = itemJurosAtrasoPendente;
-  const juros = parseFloat($('#ja-juros').value)||0;
+  const juros = Math.max(0, parseFloat($('#ja-juros').value)||0);
+  const desconto = Math.max(0, parseFloat($('#ja-desconto').value)||0);
+  if(desconto > Number(l.valor||0)){ mostrarToast('O desconto não pode ser maior que o valor.'); return; }
   const btn = $('#btn-confirmar-juros-atraso');
   btn.disabled = true; btn.textContent = 'Salvando...';
   fecharModalJurosAtraso(); mostrarToast('Registrando pagamento...');
   try{
     const payload = Object.assign({}, l, {pago:true});
     delete payload.id;
+    await aplicarExtrasPagamento(payload, {ativo:true, juros, desconto});
     await atualizarDocumento('lancamentos', l.id, payload);
     const idx = lancamentos.findIndex(x=>x.id===l.id);
-    if(idx>-1) lancamentos[idx] = Object.assign({}, lancamentos[idx], {pago:true});
-
-    if(juros>0){
-      const nomeCategoria = await garantirCategoriaJurosAtraso();
-      const hojeISO = isoDeData(new Date());
-      const payloadJuros = {
-        descricao: 'Juros/multa por atraso — '+(l.descricao||'lançamento'),
-        valor: juros, data: hojeISO, categoria: nomeCategoria, pessoa: l.pessoa || (pessoaAtual||''),
-        tipo:'despesa', formaPagamento:'dinheiro', cartao:'', parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
-        pago:true
-      };
-      const criado = await criarDocumento('lancamentos', payloadJuros);
-      const id = criado.name.split('/').pop();
-      lancamentos.unshift(Object.assign({id}, payloadJuros));
-      lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
-    }
-    fecharModalJurosAtraso();
+    if(idx>-1) lancamentos[idx] = Object.assign({id:l.id}, payload);
+    lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
     renderizarTudo();
-    mostrarToast(juros>0 ? 'Pagamento com juros registrado.' : 'Marcado como pago.');
+    mostrarToast(juros>0 || desconto>0 ? 'Pagamento registrado com '+(juros>0 && desconto>0 ? 'juros e desconto' : (juros>0 ? 'juros' : 'desconto'))+'.' : 'Marcado como pago.');
   }catch(e){
     mostrarToast('Não foi possível registrar o pagamento.');
   }
   btn.disabled = false; btn.textContent = 'Confirmar pagamento';
 }
+
 function formatarDataExibicao(iso){
   if(!iso) return '';
   const [a,m,d] = iso.split('-');
@@ -2581,7 +2657,7 @@ function renderizarDetalheChequeEspecial(){
     listaEl.innerHTML = '<div class="vazio">Nenhum gasto lançado nesta conta.</div>';
   } else {
     gastos.forEach(l=>{
-      const item = document.createElement('div'); item.className='item-lancamento';
+      const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l); ligarDetalheLancamento(item, l);
       const esq = document.createElement('div'); esq.className='esq';
       const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
       const meta = document.createElement('div'); meta.className='meta';
@@ -2819,7 +2895,7 @@ function renderizarDetalheContaBancaria(){
     listaEl.innerHTML = '<div class="vazio">Nenhum movimento lançado nesta conta.</div>';
   } else {
     movimentos.forEach(l=>{
-      const item = document.createElement('div'); item.className='item-lancamento';
+      const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l); ligarDetalheLancamento(item, l);
       const esq = document.createElement('div'); esq.className='esq';
       const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
       const meta = document.createElement('div'); meta.className='meta';
@@ -3582,7 +3658,7 @@ function renderizarHistoricoCartaoCompleto(cartao){
     return;
   }
   todos.forEach(l=>{
-    const item = document.createElement('div'); item.className='item-lancamento';
+    const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l); ligarDetalheLancamento(item, l);
     const esq = document.createElement('div'); esq.className='esq';
     const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
     const meta = document.createElement('div'); meta.className='meta';
@@ -4112,7 +4188,7 @@ function renderizarDiaSelecionado(){
   let total = 0;
   itens.forEach(l=>{
     total += Number(l.valor||0);
-    const item = document.createElement('div'); item.className='item-lancamento';
+    const item = document.createElement('div'); item.className='item-lancamento '+classificarCorVencimento(l); ligarDetalheLancamento(item, l);
     const esq = document.createElement('div'); esq.className='esq';
     const desc = document.createElement('div'); desc.className='desc'; desc.textContent = l.descricao || '(sem descrição)';
     const meta = document.createElement('div'); meta.className='meta';
@@ -4206,6 +4282,7 @@ function abrirModalLancamento(lancamentoExistente){
   $('#m-data-vencimento').value = lancamentoExistente ? (lancamentoExistente.dataVencimento||'') : '';
   $('#m-data-referencia').value = lancamentoExistente ? (lancamentoExistente.dataReferencia||'') : '';
   $('#m-parcelas').value = 1;
+  $('#m-juros').value = ''; $('#m-desconto').value = '';
   $('#m-valor-modo').value = 'parcela';
   $('#m-fin-parcela-atual').value = (lancamentoExistente && lancamentoExistente.formaPagamento==='financiamento') ? (lancamentoExistente.parcelaAtual||'') : '';
   $('#m-fin-parcela-total').value = (lancamentoExistente && lancamentoExistente.formaPagamento==='financiamento') ? (lancamentoExistente.parcelaTotal||'') : '';
@@ -4247,7 +4324,193 @@ function classificarCorVencimento(l){
   if(venc < hojeISO) return 'venc-vencido';
   const limite = new Date(); limite.setDate(limite.getDate()+7);
   if(venc <= isoDeData(limite)) return 'venc-proximo';
-  return '';
+  return 'venc-avencer';
+}
+function diasParaVencer(l){
+  const v = dataEfetivaVencimento(l);
+  if(!v) return null;
+  const h = new Date(); const hoje0 = new Date(h.getFullYear(), h.getMonth(), h.getDate());
+  return Math.round((dataISOparaData(v) - hoje0) / 86400000);
+}
+function textoVencimento(l){
+  if(ehPago(l)) return (l.tipo==='receita' ? 'Recebido' : 'Pago') + (l.dataPagamento ? ' em '+formatarDataAno(dataISOparaData(l.dataPagamento)) : '');
+  const d = diasParaVencer(l);
+  if(d===null) return 'Sem vencimento';
+  if(d<0) return 'Vencida há '+(-d)+(d===-1 ? ' dia' : ' dias');
+  if(d===0) return 'Vence hoje';
+  if(d===1) return 'Vence amanhã';
+  return 'Vence em '+d+' dias';
+}
+function criarTagVencimento(l){
+  const s = document.createElement('span');
+  s.className = 'tag-venc '+classificarCorVencimento(l);
+  s.textContent = textoVencimento(l);
+  return s;
+}
+function ligarDetalheLancamento(item, l){
+  item.title = 'Toque para ver todos os detalhes';
+  item.addEventListener('click', e=>{
+    if(e.target.closest('button, input, select, a, .selo-pagamento')) return;
+    abrirDetalheLancamento(l.id);
+  });
+}
+
+/* =========================================================================
+   DETALHES DA PARCELA / LANÇAMENTO (abre ao tocar no item da lista)
+========================================================================= */
+const ROTULO_FORMA_PAGAMENTO = {dinheiro:'Dinheiro / Pix', debito:'Débito / Valor em conta', credito:'Crédito', financiamento:'Financiamento / Prestação', cheque_especial:'Cheque especial'};
+let detalheLancamentoId = null;
+function fecharDetalheLancamento(){ $('#modal-detalhe-lancamento').classList.remove('ativo'); detalheLancamentoId = null; }
+function abrirDetalheLancamento(id){
+  const l = lancamentos.find(x=>x.id===id);
+  if(!l) return;
+  detalheLancamentoId = id;
+  const ehReceita = l.tipo==='receita';
+  const faixa = $('#det-faixa');
+  faixa.className = 'det-faixa '+classificarCorVencimento(l);
+  faixa.textContent = textoVencimento(l) + (!ehPago(l) && ehReceita ? ' — a receber' : '');
+  $('#det-titulo').textContent = l.descricao || '(sem descrição)';
+  const val = $('#det-valor');
+  val.className = 'det-valor '+(ehReceita ? 'receita' : 'despesa');
+  val.textContent = (ehReceita ? '+ ' : '- ') + formatarMoeda(l.valor);
+
+  const linhas = $('#det-linhas');
+  linhas.innerHTML = '';
+  const add = (rotulo, valor)=>{
+    if(valor===undefined || valor===null || valor==='') return;
+    const d = document.createElement('div'); d.className = 'det-linha';
+    const a = document.createElement('span'); a.textContent = rotulo;
+    const b = document.createElement('span'); b.textContent = valor;
+    d.appendChild(a); d.appendChild(b); linhas.appendChild(d);
+  };
+  const dataBR = (iso)=> iso ? formatarDataAno(dataISOparaData(iso)) : '';
+  add('Tipo', ehReceita ? 'Receita' : 'Despesa');
+  add('Situação', ehPago(l) ? ((ehReceita ? 'Recebido' : 'Pago') + (l.dataPagamento ? ' em '+dataBR(l.dataPagamento) : '')) : (ehReceita ? 'A receber' : 'Pendente (a pagar)'));
+  add('Vencimento', dataBR(dataEfetivaVencimento(l)));
+  if(l.dataVencimento && l.dataVencimento !== l.data) add('Data do lançamento', dataBR(l.data));
+  add('Referência', l.dataReferencia ? formatarMesReferencia(l.dataReferencia) : '');
+  add('Categoria', l.categoria || 'Outros');
+  add('Lançado por', l.pessoa || '');
+  if(!ehReceita) add('Forma de pagamento', ROTULO_FORMA_PAGAMENTO[l.formaPagamento || 'dinheiro'] || '');
+  add('Cartão', l.formaPagamento==='credito' ? l.cartao : '');
+  add('Conta do cheque especial', l.formaPagamento==='cheque_especial' ? l.contaChequeEspecial : '');
+  add('Conta bancária', l.contaBancaria || '');
+  if(l.formaPagamento==='credito' && l.cartao){
+    const cartaoObj = cartoes.find(c=>c.nome===l.cartao);
+    if(cartaoObj && Number(cartaoObj.diaFechamento)>0){
+      const ciclo = calcularCicloFatura(cartaoObj.diaFechamento, dataISOparaData(l.data));
+      add('Fatura que fecha em', formatarDataAno(ciclo.fim));
+      if(Number(cartaoObj.diaVencimento)>0) add('Vencimento da fatura', formatarDataAno(proximaOcorrenciaDia(cartaoObj.diaVencimento, ciclo.fim)));
+    }
+  }
+  if(Number(l.parcelaTotal)>1){
+    const rotuloParc = l.recorrente ? (l.tipoRecorrencia==='assinatura' ? 'Assinatura — mês' : 'Recorrência — mês') : 'Parcela';
+    add(rotuloParc, l.parcelaAtual+' de '+l.parcelaTotal);
+  }
+  if(Number(l.valorOriginal)>0) add('Valor original', formatarMoeda(l.valorOriginal));
+  if(Number(l.desconto)>0) add('Desconto obtido', '- '+formatarMoeda(l.desconto));
+  if(Number(l.juros)>0) add('Juros / multa pagos', '+ '+formatarMoeda(l.juros)+' (lançados à parte)');
+  if(ehPago(l) && (Number(l.juros)>0 || Number(l.desconto)>0)) add('Total efetivamente pago', formatarMoeda(Number(l.valor||0)+Number(l.juros||0)));
+
+  // Todas as parcelas da mesma compra
+  const alvoGrupo = $('#det-grupo');
+  alvoGrupo.innerHTML = '';
+  if(l.grupoParcelaId){
+    const grupo = lancamentos.filter(x=>x.grupoParcelaId===l.grupoParcelaId).sort((a,b)=>Number(a.parcelaAtual)-Number(b.parcelaAtual));
+    if(grupo.length>1){
+      const total = grupo.reduce((s,x)=>s+Number(x.valor||0),0);
+      const pagoSoma = grupo.filter(ehPago).reduce((s,x)=>s+Number(x.valor||0),0);
+      const h = document.createElement('h4'); h.textContent = 'Todas as parcelas desta compra';
+      const r = document.createElement('div'); r.className = 'resumo';
+      r.textContent = grupo.length+' parcelas • total '+formatarMoeda(total)+' • pago '+formatarMoeda(pagoSoma)+' • em aberto '+formatarMoeda(total-pagoSoma);
+      alvoGrupo.appendChild(h); alvoGrupo.appendChild(r);
+      grupo.forEach(x=>{
+        const cls = classificarCorVencimento(x);
+        const linha = document.createElement('div');
+        linha.className = 'det-parcela '+cls+(x.id===l.id ? ' atual' : '');
+        const esq = document.createElement('span');
+        esq.textContent = x.parcelaAtual+'/'+x.parcelaTotal+' • '+dataBR(dataEfetivaVencimento(x));
+        const dir = document.createElement('span');
+        dir.innerHTML = '<b></b> <span class="st"></span>';
+        dir.querySelector('b').textContent = formatarMoeda(x.valor);
+        dir.querySelector('.st').textContent = ehPago(x) ? '✓ pago' : textoVencimento(x).toLowerCase();
+        linha.appendChild(esq); linha.appendChild(dir);
+        linha.addEventListener('click', ()=>abrirDetalheLancamento(x.id));
+        alvoGrupo.appendChild(linha);
+      });
+    }
+  }
+
+  $('#btn-det-pagar').textContent = ehPago(l) ? 'Marcar como pendente' : (ehReceita ? 'Marcar como recebido' : 'Registrar pagamento');
+  $('#modal-detalhe-lancamento').classList.add('ativo');
+}
+
+/* =========================================================================
+   JUROS E DESCONTO NO PAGAMENTO
+========================================================================= */
+async function criarLancamentoJuros(descricaoBase, juros, pessoa){
+  const nomeCategoria = await garantirCategoriaJurosAtraso();
+  const payloadJuros = {
+    descricao: 'Juros/multa — '+(descricaoBase||'lançamento'),
+    valor: juros, data: isoDeData(new Date()), categoria: nomeCategoria, pessoa: pessoa || pessoaAtual || '',
+    tipo:'despesa', formaPagamento:'dinheiro', cartao:'', parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+    pago:true
+  };
+  const criado = await criarDocumento('lancamentos', payloadJuros);
+  const id = criado.name.split('/').pop();
+  lancamentos.unshift(Object.assign({id}, payloadJuros));
+  return id;
+}
+// Ajusta o lançamento que está sendo gravado como PAGO: guarda a data do pagamento,
+// aplica o desconto (valor original fica guardado) e cria o lançamento do juros à parte.
+async function aplicarExtrasPagamento(payload, extras){
+  if(!payload.pago) return;
+  if(!payload.dataPagamento) payload.dataPagamento = isoDeData(new Date());
+  if(!extras || !extras.ativo) return;
+  if(extras.desconto>0){
+    payload.valorOriginal = Number(payload.valor);
+    payload.valor = Math.max(0, Math.round((Number(payload.valor) - extras.desconto)*100)/100);
+    payload.desconto = extras.desconto;
+  }
+  if(extras.juros>0){
+    payload.juros = extras.juros;
+    payload.jurosLancamentoId = await criarLancamentoJuros(payload.descricao, extras.juros, payload.pessoa);
+  }
+}
+// Ao voltar para "pendente": devolve o valor original e apaga o lançamento de juros que foi criado.
+async function limparExtrasPagamento(payload){
+  if(payload.jurosLancamentoId){
+    try{
+      await excluirDocumento('lancamentos', payload.jurosLancamentoId);
+      lancamentos = lancamentos.filter(x=>x.id!==payload.jurosLancamentoId);
+    }catch(e){}
+  }
+  if(Number(payload.valorOriginal)>0) payload.valor = Number(payload.valorOriginal);
+  payload.valorOriginal = 0; payload.desconto = 0; payload.juros = 0; payload.jurosLancamentoId = ''; payload.dataPagamento = '';
+}
+function lerExtrasPagamentoModal(){
+  const existente = modoEdicaoId ? lancamentos.find(l=>l.id===modoEdicaoId) : null;
+  const ativo = tipoSelecionadoModal==='despesa' && pagoSelecionadoModal==='pago' && !(existente && ehPago(existente));
+  return {
+    ativo,
+    juros: ativo ? Math.max(0, parseFloat($('#m-juros').value)||0) : 0,
+    desconto: ativo ? Math.max(0, parseFloat($('#m-desconto').value)||0) : 0
+  };
+}
+function atualizarVisibilidadeJurosDesconto(){
+  const mostrar = lerExtrasPagamentoModal().ativo;
+  $('#campo-juros-desconto').style.display = mostrar ? 'block' : 'none';
+  if(!mostrar){ $('#m-juros').value = ''; $('#m-desconto').value = ''; }
+  atualizarResumoJurosDescontoModal();
+}
+function atualizarResumoJurosDescontoModal(){
+  const el = $('#m-resumo-pagamento');
+  if(!el) return;
+  let base = parseFloat($('#m-valor').value)||0;
+  try{ const v = valoresDaOperacaoModal(); if(v && v.valorParcela) base = v.valorParcela; }catch(e){}
+  const juros = parseFloat($('#m-juros').value)||0;
+  const desc = parseFloat($('#m-desconto').value)||0;
+  el.textContent = 'Total pago: '+formatarMoeda(Math.max(0, base + juros - desc)) + (Number(parcelasEfetivasModal())>1 ? ' (aplicado só na parcela paga)' : '');
 }
 function ordenarPorVencimento(lista){
   return lista.slice().sort((a,b)=> dataEfetivaVencimento(a).localeCompare(dataEfetivaVencimento(b)));
@@ -4261,11 +4524,13 @@ function selecionarTipoModal(tipo){
   $('#campo-datas-extras').style.display = tipo==='despesa' ? 'flex' : 'none';
   if(tipo==='receita'){ $('#m-forma').value='dinheiro'; }
   atualizarVisibilidadeFormaPagamento();
+  atualizarVisibilidadeJurosDesconto();
 }
 function selecionarPagoModal(status){
   pagoSelecionadoModal = status;
   $('#pago-pendente').classList.toggle('sel-pendente', status==='pendente');
   $('#pago-pago').classList.toggle('sel-pago', status==='pago');
+  atualizarVisibilidadeJurosDesconto();
   atualizarAjudaValorParcela();
 }
 function atualizarVisibilidadeFormaPagamento(){
@@ -4474,6 +4739,13 @@ async function salvarLancamento(ignorarAvisoLimite){
     if(parcelaAtualFin > parcelaTotalFin){ mostrarToast('A parcela atual não pode ser maior que o total de parcelas.'); return; }
   }
 
+  const extras = lerExtrasPagamentoModal();
+  if(extras.ativo){
+    let baseParcela = valorDigitado;
+    try{ const v0 = valoresDaOperacaoModal(); if(v0 && v0.valorParcela) baseParcela = v0.valorParcela; }catch(e){}
+    if(extras.desconto > baseParcela){ mostrarToast('O desconto não pode ser maior que o valor.'); return; }
+  }
+
   if(ignorarAvisoLimite !== true){
     const avisoLimite = textoExcessoLimiteModal();
     if(avisoLimite){ abrirConfirmacao('Passa do limite', avisoLimite, ()=>salvarLancamento(true)); return; }
@@ -4495,8 +4767,15 @@ async function salvarLancamento(ignorarAvisoLimite){
         recorrente: existente.recorrente || false,
         tipoRecorrencia: existente.tipoRecorrencia || '',
         dataVencimento, dataReferencia,
-        pago: pagoSelecionadoModal==='pago'
+        pago: pagoSelecionadoModal==='pago',
+        dataPagamento: existente.dataPagamento || '',
+        valorOriginal: (Number(existente.desconto)>0 ? Number(valorDigitado)+Number(existente.desconto) : (existente.valorOriginal||0)),
+        desconto: existente.desconto || 0,
+        juros: existente.juros || 0,
+        jurosLancamentoId: existente.jurosLancamentoId || ''
       };
+      if(payload.pago && !ehPago(existente)){ await aplicarExtrasPagamento(payload, extras); }
+      else if(!payload.pago && ehPago(existente)){ await limparExtrasPagamento(payload); }
       await atualizarDocumento('lancamentos', modoEdicaoId, payload);
       const idx = lancamentos.findIndex(l=>l.id===modoEdicaoId);
       if(idx>-1) lancamentos[idx] = Object.assign({id:modoEdicaoId}, payload);
@@ -4522,6 +4801,7 @@ async function salvarLancamento(ignorarAvisoLimite){
           recorrente:false, dataVencimento:'', dataReferencia:'',
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
         };
+        if(i===0) await aplicarExtrasPagamento(payload, extras);
         const criado = await criarDocumento('lancamentos', payload);
         const id = criado.name.split('/').pop();
         lancamentos.push(Object.assign({id}, payload));
@@ -4540,6 +4820,7 @@ async function salvarLancamento(ignorarAvisoLimite){
           recorrente:false, dataVencimento:'', dataReferencia:'',
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
         };
+        if(i===0) await aplicarExtrasPagamento(payload, extras);
         const criado = await criarDocumento('lancamentos', payload);
         const id = criado.name.split('/').pop();
         lancamentos.push(Object.assign({id}, payload));
@@ -4555,6 +4836,7 @@ async function salvarLancamento(ignorarAvisoLimite){
           recorrente:true, tipoRecorrencia, dataVencimento, dataReferencia,
           pago: i===0 ? (pagoSelecionadoModal==='pago') : false
         };
+        if(i===0) await aplicarExtrasPagamento(payload, extras);
         const criado = await criarDocumento('lancamentos', payload);
         const id = criado.name.split('/').pop();
         lancamentos.push(Object.assign({id}, payload));
@@ -4566,6 +4848,7 @@ async function salvarLancamento(ignorarAvisoLimite){
         recorrente:false, dataVencimento, dataReferencia,
         pago: pagoSelecionadoModal==='pago'
       };
+      await aplicarExtrasPagamento(payload, extras);
       const criado = await criarDocumento('lancamentos', payload);
       const id = criado.name.split('/').pop();
       lancamentos.unshift(Object.assign({id}, payload));
@@ -5155,6 +5438,11 @@ $('#m-forma').addEventListener('change', atualizarVisibilidadeFormaPagamento);
 ['#m-data','#m-recorrencia-meses'].forEach(sel=>$(sel).addEventListener('input', atualizarAjudaValorParcela));
 $('#m-parcelas').addEventListener('input', atualizarAjudaValorParcela);
 $('#m-valor').addEventListener('input', atualizarAjudaValorParcela);
+['#m-valor','#m-juros','#m-desconto','#m-parcelas','#m-valor-modo'].forEach(sel=>$(sel).addEventListener('input', atualizarResumoJurosDescontoModal));
+$('#btn-det-fechar').addEventListener('click', fecharDetalheLancamento);
+$('#btn-det-editar').addEventListener('click', ()=>{ const l = lancamentos.find(x=>x.id===detalheLancamentoId); fecharDetalheLancamento(); if(l) abrirModalLancamento(l); });
+$('#btn-det-pagar').addEventListener('click', ()=>{ const l = lancamentos.find(x=>x.id===detalheLancamentoId); fecharDetalheLancamento(); if(l) alternarStatusPagamento(l); });
+$('#btn-det-excluir').addEventListener('click', ()=>{ const l = lancamentos.find(x=>x.id===detalheLancamentoId); fecharDetalheLancamento(); if(l) confirmarExcluirLancamentoGeral(l); });
 $('#m-recorrente').addEventListener('change', atualizarVisibilidadeRecorrencia);
 $('#m-tipo-recorrencia').addEventListener('change', atualizarVisibilidadeRecorrencia);
 
@@ -5187,6 +5475,7 @@ $('#nova-conta-ce-limite').addEventListener('keydown', e=>{ if(e.key==='Enter') 
 $('#btn-cancelar-juros-atraso').addEventListener('click', fecharModalJurosAtraso);
 $('#btn-confirmar-juros-atraso').addEventListener('click', confirmarPagamentoComJuros);
 $('#ja-juros').addEventListener('input', atualizarResumoJurosAtraso);
+$('#ja-desconto').addEventListener('input', atualizarResumoJurosAtraso);
 
 $('#btn-abrir-quitar-lote').addEventListener('click', abrirModalQuitarLote);
 $('#btn-cancelar-quitar-lote').addEventListener('click', fecharModalQuitarLote);
