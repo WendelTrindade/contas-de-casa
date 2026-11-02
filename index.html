@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Contas de Casa v2.2.1 — Controle Financeiro Familiar</title>
+<title>Contas de Casa v2.3.0 — Controle Financeiro Familiar</title>
 <style>
   :root{
     --bg: #F6F3EC;
@@ -521,6 +521,21 @@
   .carregando{ text-align:center; padding:40px; color:var(--ink-soft); font-family:-apple-system,sans-serif; }
 
   /* Versão do sistema + quadro "Em aberto do mês" */
+
+  /* Gráfico de despesas mensais (v2.3.0) */
+  .dm-rolagem{ overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+  .dm-grafico{ display:flex; align-items:flex-end; gap:6px; min-width:max-content; height:190px; padding-top:6px; }
+  .dm-col{ flex:0 0 54px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; cursor:pointer; background:none; border:0; padding:0; font-family:inherit; }
+  .dm-valor{ font-family:-apple-system,sans-serif; font-size:0.62rem; font-weight:600; color:var(--ink); margin-bottom:3px; white-space:nowrap; }
+  .dm-barra{ width:30px; border-radius:4px 4px 0 0; background:var(--rose); opacity:.55; min-height:3px; transition:opacity .15s; }
+  .dm-col.atual .dm-barra{ opacity:1; }
+  .dm-col.futuro .dm-barra{ background:var(--gold); }
+  .dm-col .rot{ font-family:-apple-system,sans-serif; font-size:0.66rem; color:var(--ink-soft); margin-top:6px; }
+  .dm-col.atual .rot{ font-weight:700; color:var(--ink); }
+  .dm-resumo{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .dm-resumo > div{ flex:1 1 90px; background:var(--gold-soft); border-radius:10px; padding:8px 10px; font-family:-apple-system,sans-serif; }
+  .dm-resumo .t{ font-size:0.64rem; color:var(--ink-soft); }
+  .dm-resumo .v{ font-size:0.86rem; font-weight:700; color:var(--ink); margin-top:2px; }
   .selo-versao{ display:inline-block; font-family:-apple-system,sans-serif; font-size:0.62rem; font-weight:600; letter-spacing:.03em; padding:2px 7px; border-radius:20px; background:var(--gold-soft); color:#7A5A20; margin-left:8px; vertical-align:middle; }
   .ea-topo{ display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap; }
   .ea-rotulo{ font-family:-apple-system,sans-serif; font-size:0.74rem; color:var(--ink-soft); }
@@ -581,7 +596,7 @@
     <div class="brasao">🏠</div>
     <h1>Contas de Casa</h1>
     <p class="legenda">Controle financeiro da família</p>
-    <p class="legenda" style="font-size:0.72rem;">Versão 2.2.1 — 31/10/2026</p>
+    <p class="legenda" style="font-size:0.72rem;">Versão 2.3.0 — 02/11/2026</p>
 
     <div class="campo">
       <label for="in-usuario">Usuário</label>
@@ -602,7 +617,7 @@
   <header class="topo">
     <div class="titulo">
       <div class="icone">🏠</div>
-      <h1>Contas de Casa<span class="selo-versao" title="Versão do sistema: 2.2.1 — 31/10/2026">v2.2.1</span></h1>
+      <h1>Contas de Casa<span class="selo-versao" title="Versão do sistema: 2.3.0 — 02/11/2026">v2.3.0</span></h1>
     </div>
     <div class="usuario-chip">
       <span id="rotulo-pessoa-atual">—</span>
@@ -988,6 +1003,11 @@
 
     <!-- RELATÓRIOS -->
     <section class="painel" id="painel-relatorios">
+      <div class="bloco">
+        <h2>Despesas mês a mês<span class="sub">Total gasto em cada um dos últimos 12 meses — toque numa barra para ver o mês</span></h2>
+        <div class="dm-rolagem" id="dm-rolagem"><div class="dm-grafico" id="dm-grafico"></div></div>
+        <div class="dm-resumo" id="dm-resumo"></div>
+      </div>
       <div class="bloco">
         <h2>Resumo mensal<span class="sub">Receitas, despesas e para onde foi o dinheiro</span></h2>
         <div class="seletor-mes-relatorio">
@@ -3929,10 +3949,57 @@ function mudarMesRelatorio(delta){
   renderizarRelatorioMensal();
 }
 
+
+function renderizarGraficoDespesasMensais(){
+  const container = $('#dm-grafico');
+  if(!container) return;
+  container.innerHTML = '';
+  const hoje = new Date(); const chaveHoje = chaveMes(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+  const meses = [];
+  for(let i=11;i>=0;i--) meses.push(new Date(mesRelatorio.getFullYear(), mesRelatorio.getMonth()-i, 1));
+  const dados = meses.map(d=>({
+    data: d,
+    total: lancamentosDoMes(d).filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0)
+  }));
+  const maior = Math.max(1, ...dados.map(x=>x.total));
+  const chaveSel = chaveMes(mesRelatorio);
+  dados.forEach(x=>{
+    const chave = chaveMes(x.data);
+    const col = document.createElement('button'); col.type='button';
+    col.className = 'dm-col' + (chave===chaveSel ? ' atual' : '') + (chave>chaveHoje ? ' futuro' : '');
+    col.title = capitalizar(nomeMes(x.data)) + ': ' + formatarMoeda(x.total);
+    const val = document.createElement('div'); val.className='dm-valor';
+    val.textContent = x.total>0 ? Math.round(x.total).toLocaleString('pt-BR') : '0';
+    const barra = document.createElement('div'); barra.className='dm-barra';
+    barra.style.height = (x.total>0 ? Math.max(4, x.total/maior*130) : 3)+'px';
+    const rot = document.createElement('div'); rot.className='rot';
+    rot.textContent = x.data.toLocaleDateString('pt-BR',{month:'short', year:'2-digit'}).replace('.','');
+    col.appendChild(val); col.appendChild(barra); col.appendChild(rot);
+    col.addEventListener('click', ()=>{ mesRelatorio = new Date(x.data.getFullYear(), x.data.getMonth(), 1); renderizarRelatorioMensal(); });
+    container.appendChild(col);
+  });
+  const soma = dados.reduce((s,x)=>s+x.total,0);
+  const comGasto = dados.filter(x=>x.total>0);
+  const media = comGasto.length ? soma/comGasto.length : 0;
+  const pico = dados.reduce((a,b)=> b.total>a.total ? b : a, dados[0]);
+  const resumo = $('#dm-resumo'); resumo.innerHTML = '';
+  [['Total dos 12 meses', formatarMoeda(soma)],
+   ['Média por mês com gasto', formatarMoeda(media)],
+   ['Mês mais caro', pico.total>0 ? (capitalizar(nomeMes(pico.data)) + ' — ' + formatarMoeda(pico.total)) : '—']
+  ].forEach(([t,v])=>{
+    const d = document.createElement('div');
+    const a = document.createElement('div'); a.className='t'; a.textContent=t;
+    const b = document.createElement('div'); b.className='v'; b.textContent=v;
+    d.appendChild(a); d.appendChild(b); resumo.appendChild(d);
+  });
+  const rol = $('#dm-rolagem'); if(rol) rol.scrollLeft = rol.scrollWidth;
+}
+
 function renderizarRelatorioMensal(){
   const rotulo = $('#relatorio-rotulo-mes');
   if(!rotulo) return;
   rotulo.textContent = capitalizar(nomeMes(mesRelatorio));
+  renderizarGraficoDespesasMensais();
 
   const doMes = lancamentosDoMes(mesRelatorio);
   const receitas = doMes.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
