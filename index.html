@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<title>Contas de Casa v2.6.0 — Controle Financeiro Familiar</title>
+<title>Contas de Casa v2.7.1 — Controle Financeiro Familiar</title>
 <style>
   :root{
     --bg: #F6F3EC;
@@ -612,6 +612,22 @@
   .ga-linha .v{ font-weight:700; white-space:nowrap; }
   .ga-linha.fechada{ border-color:var(--gold); background:var(--gold-soft); }
   .ga-nota{ font-family:-apple-system,sans-serif; font-size:0.74rem; color:var(--ink-soft); margin-top:6px; line-height:1.4; }
+
+  /* Empréstimos (v2.7.0) */
+  nav.abas button[data-painel="painel-emprestimos"]::before{ content:'🤝 '; }
+  .emp-topo{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .emp-nome{ font-size:1.05rem; font-weight:700; color:var(--ink); }
+  .emp-selo{ font-family:-apple-system,sans-serif; font-size:0.68rem; font-weight:700; padding:3px 9px; border-radius:20px; background:var(--rose-soft); color:var(--rose); white-space:nowrap; }
+  .emp-selo.quitado{ background:var(--sage); color:var(--forest-dark); }
+  .emp-saldo-rot{ font-family:-apple-system,sans-serif; font-size:0.74rem; color:var(--ink-soft); margin-top:10px; }
+  .emp-saldo{ font-size:1.7rem; font-weight:700; color:var(--rose); line-height:1.15; }
+  .emp-saldo.zero{ color:var(--forest); }
+  .emp-botoes{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .emp-botoes button{ flex:1 1 140px; }
+  .emp-hist{ margin-top:12px; font-family:-apple-system,sans-serif; font-size:0.82rem; }
+  .emp-hist summary{ cursor:pointer; font-weight:600; color:var(--forest-dark); }
+  .emp-hist .h{ display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); }
+  .emp-hist .h .d{ color:var(--ink-soft); font-size:0.72rem; }
   .selo-versao{ display:inline-block; font-family:-apple-system,sans-serif; font-size:0.62rem; font-weight:600; letter-spacing:.03em; padding:2px 7px; border-radius:20px; background:var(--gold-soft); color:#7A5A20; margin-left:8px; vertical-align:middle; }
   .ea-topo{ display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap; }
   .ea-rotulo{ font-family:-apple-system,sans-serif; font-size:0.74rem; color:var(--ink-soft); }
@@ -674,7 +690,7 @@
     <div class="brasao">🏠</div>
     <h1>Contas de Casa</h1>
     <p class="legenda">Controle financeiro da família</p>
-    <p class="legenda" style="font-size:0.72rem;">Versão 2.6.0 — 04/11/2026</p>
+    <p class="legenda" style="font-size:0.72rem;">Versão 2.7.1 — 04/11/2026</p>
 
     <div class="campo">
       <label for="in-usuario">Usuário</label>
@@ -695,7 +711,7 @@
   <header class="topo">
     <div class="titulo">
       <div class="icone">🏠</div>
-      <h1>Contas de Casa<span class="selo-versao" title="Versão do sistema: 2.6.0 — 04/11/2026">v2.6.0</span></h1>
+      <h1>Contas de Casa<span class="selo-versao" title="Versão do sistema: 2.7.1 — 04/11/2026">v2.7.1</span></h1>
     </div>
     <div class="usuario-chip">
       <span id="rotulo-pessoa-atual">—</span>
@@ -713,6 +729,7 @@
       <button class="aba-btn" data-painel="painel-faturas">Cartões de Crédito</button>
       <button class="aba-btn" data-painel="painel-cheque-especial">Cheque Especial</button>
       <button class="aba-btn" data-painel="painel-contas-bancarias">Contas Bancárias</button>
+      <button class="aba-btn" data-painel="painel-emprestimos">Empréstimos</button>
       <button class="aba-btn" data-painel="painel-relatorios">Relatórios</button>
       <button class="aba-btn" data-painel="painel-categorias">Categorias</button>
       <button class="aba-btn" data-painel="painel-ajustes">Ajustes</button>
@@ -1106,6 +1123,16 @@
       </div>
     </section>
 
+    <!-- EMPRÉSTIMOS -->
+    <section class="painel" id="painel-emprestimos">
+      <div class="bloco">
+        <h2>Empréstimos<span class="sub">Dinheiro emprestado que você recebeu e vai pagar, com juros todo mês</span></h2>
+        <button class="btn-primario" id="btn-novo-emprestimo">+ Novo empréstimo</button>
+        <div id="resumo-emprestimos" class="sans" style="margin-top:12px;font-size:0.85rem;color:var(--ink-soft);"></div>
+      </div>
+      <div id="lista-emprestimos"></div>
+    </section>
+
     <!-- CATEGORIAS -->
     <section class="painel" id="painel-categorias">
       <div class="bloco">
@@ -1192,6 +1219,7 @@
       <button class="item" data-ir="painel-cheque-especial"><span class="ic">🏦</span>Cheque Especial</button>
       <button class="item" data-ir="painel-contas-bancarias"><span class="ic">💰</span>Contas Bancárias</button>
       <button class="item" data-ir="painel-insights"><span class="ic">🔎</span>Onde eu erro</button>
+      <button class="item" data-ir="painel-emprestimos"><span class="ic">🤝</span>Empréstimos</button>
       <button class="item" data-ir="painel-categorias"><span class="ic">🏷️</span>Categorias</button>
       <button class="item" data-ir="painel-ajustes"><span class="ic">⚙️</span>Ajustes</button>
     </div>
@@ -1206,6 +1234,7 @@
       <button type="button" id="tipo-receita" data-tipo="receita">Receita</button>
       <button type="button" id="tipo-despesa" data-tipo="despesa">Despesa</button>
     </div>
+    <button type="button" class="btn-secundario" id="btn-tipo-emprestimo" style="width:100%;margin:-6px 0 14px;">🤝 Empréstimo recebido (juros mensais)</button>
     <div class="grupo-pago">
       <button type="button" id="pago-pendente" data-pago="pendente">Pendente (a pagar/receber)</button>
       <button type="button" id="pago-pago" data-pago="pago">Já pago/recebido</button>
@@ -1374,6 +1403,66 @@
     <div class="acoes-modal">
       <button class="cancelar" id="btn-cancelar-pagar-fatura">Cancelar</button>
       <button class="confirmar" id="btn-confirmar-pagar-fatura">Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL EMPRÉSTIMO ===================== -->
+<div class="fundo-modal" id="modal-emprestimo">
+  <div class="caixa-modal">
+    <h3 id="titulo-modal-emprestimo">Novo empréstimo</h3>
+    <p class="sans" id="texto-modal-emprestimo" style="font-size:0.82rem;color:var(--ink-soft);margin-bottom:14px;line-height:1.45;">Dinheiro emprestado que você recebeu. O valor entra como receita do mês; todo mês o juros vira uma despesa pendente, calculado sobre o que ainda falta pagar.</p>
+    <div class="campo-modal">
+      <label for="emp-nome">De quem / descrição</label>
+      <input type="text" id="emp-nome" placeholder="Ex: Empréstimo do João, Banco X...">
+    </div>
+    <div class="linha-2">
+      <div class="campo-modal">
+        <label for="emp-valor">Valor recebido (R$)</label>
+        <input type="number" id="emp-valor" step="0.01" min="0" placeholder="0,00">
+      </div>
+      <div class="campo-modal">
+        <label for="emp-taxa">Juros ao mês (%)</label>
+        <input type="number" id="emp-taxa" step="0.01" min="0" placeholder="Ex: 3">
+      </div>
+    </div>
+    <div class="linha-2" id="emp-linha-data-conta">
+      <div class="campo-modal">
+        <label for="emp-data">Data em que recebeu</label>
+        <input type="date" id="emp-data">
+      </div>
+      <div class="campo-modal">
+        <label for="emp-conta">Conta que recebeu (opcional)</label>
+        <select id="emp-conta"><option value="">Não informar</option></select>
+      </div>
+    </div>
+    <div class="sans" id="emp-resumo" style="font-size:0.82rem;color:var(--ink-soft);margin-bottom:16px;background:var(--sage);padding:8px 10px;border-radius:6px;line-height:1.45;"></div>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-cancelar-emprestimo">Cancelar</button>
+      <button class="confirmar" id="btn-confirmar-emprestimo">Salvar empréstimo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL PAGAR PARTE DO PRINCIPAL ===================== -->
+<div class="fundo-modal" id="modal-pagar-principal">
+  <div class="caixa-modal">
+    <h3>Pagar parte do principal</h3>
+    <p class="sans" id="texto-pagar-principal" style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:14px;"></p>
+    <div class="linha-2">
+      <div class="campo-modal">
+        <label for="pp-valor">Valor pago (R$)</label>
+        <input type="number" id="pp-valor" step="0.01" min="0" placeholder="0,00">
+      </div>
+      <div class="campo-modal">
+        <label for="pp-data">Data do pagamento</label>
+        <input type="date" id="pp-data">
+      </div>
+    </div>
+    <div class="sans" id="pp-resumo" style="font-size:0.82rem;color:var(--ink-soft);margin-bottom:16px;background:var(--sage);padding:8px 10px;border-radius:6px;line-height:1.5;"></div>
+    <div class="acoes-modal">
+      <button class="cancelar" id="btn-cancelar-pagar-principal">Cancelar</button>
+      <button class="confirmar" id="btn-confirmar-pagar-principal">Registrar pagamento</button>
     </div>
   </div>
 </div>
@@ -1575,6 +1664,7 @@ let categorias = [];
 let pessoas = [];
 let cartoes = [];
 let pagamentosFatura = [];
+let emprestimos = [];
 let contasChequeEspecial = [];
 let contaSelecionadaChequeEspecialId = null;
 let contasBancarias = [];
@@ -1736,10 +1826,11 @@ async function listarDocumentos(colecao){
   } while(pageToken && paginas < 200);
   return todos;
 }
-async function criarDocumento(colecao, campos){
-  const resp = await chamarFirestore('/'+colecao, {method:'POST', body: JSON.stringify(paraCamposFirestore(campos))});
+async function criarDocumento(colecao, campos, idFixo){
+  const resp = await chamarFirestore('/'+colecao+(idFixo ? '?documentId='+encodeURIComponent(idFixo) : ''), {method:'POST', body: JSON.stringify(paraCamposFirestore(campos))});
   const dados = await resp.json();
   if(!resp.ok){
+    if(idFixo && resp.status===409) return {name:'ja/existe/'+idFixo, jaExistia:true};
     throw new Error((dados && dados.error && dados.error.message) || 'Não foi possível salvar no banco de dados. Verifique a conexão e tente novamente.');
   }
   return dados;
@@ -1773,14 +1864,15 @@ async function carregarTudo(silencioso){
     $all('.painel').forEach(p=>{ if(!p.classList.contains('ativa')) return; });
     main_mostrarCarregando(true);
   }
-  const [cats, lancs, cards, pagsFatura, pess, cheEsp, contasBanc] = await Promise.all([
+  const [cats, lancs, cards, pagsFatura, pess, cheEsp, contasBanc, emps] = await Promise.all([
     listarDocumentos('categorias'),
     listarDocumentos('lancamentos'),
     listarDocumentos('cartoes'),
     listarDocumentos('pagamentosFatura'),
     listarDocumentos('pessoas'),
     listarDocumentos('contasChequeEspecial'),
-    listarDocumentos('contasBancarias')
+    listarDocumentos('contasBancarias'),
+    listarDocumentos('emprestimos')
   ]);
   if(cats.length === 0){
     // primeira vez: cria categorias padrão
@@ -1813,6 +1905,8 @@ async function carregarTudo(silencioso){
   contasChequeEspecial = cheEsp;
   contasBancarias = contasBanc;
   lancamentos = lancs.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+  emprestimos = emps;
+  try{ await sincronizarJurosEmprestimos(); }catch(e){}
   main_mostrarCarregando(false);
   preencherSelectsCategoria();
   preencherSelectCartao();
@@ -1954,6 +2048,7 @@ function renderizarTudo(){
   renderizarPainelContasBancarias();
   renderizarRelatorioMensal();
   renderizarRelatorioFuturos();
+  renderizarEmprestimos();
 }
 function capitalizar(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
@@ -2059,7 +2154,7 @@ function renderizarListaLancamentos(){
   if(catFiltro) doMes = doMes.filter(l=> l.categoria === catFiltro);
   if(tipoFiltro) doMes = doMes.filter(l=> l.tipo === tipoFiltro);
   if(statusFiltro==='pago') doMes = doMes.filter(ehPago);
-  if(statusFiltro==='pendente') doMes = doMes.filter(l=>!ehPago(l));
+  if(statusFiltro==='pendente') doMes = doMes.filter(l=>!ehPago(l) || l.emprestimoId);
   if(!busca && !catFiltro) doMes = agruparFaturasNaLista(doMes);
   doMes = ordenarPorVencimento(doMes);
 
@@ -2115,6 +2210,12 @@ function renderizarListaLancamentos(){
     if(l.recorrente && Number(l.parcelaTotal)>1){
       const tagRec = document.createElement('span'); tagRec.className='tag'; tagRec.textContent = (l.tipoRecorrencia==='assinatura' ? 'Assinatura • ' : 'Recorrente • ')+l.parcelaAtual+'/'+l.parcelaTotal;
       meta.appendChild(tagRec);
+    }
+    if(l.emprestimoId){
+      const emp = emprestimos.find(e=>e.id===l.emprestimoId);
+      const tagEmp = document.createElement('span'); tagEmp.className='tag';
+      tagEmp.textContent = '🤝 Empréstimo'+(emp ? ' • '+emp.nome : '')+' • '+(l.tipoEmprestimo==='juros' ? 'juros' : (l.tipoEmprestimo==='principal' ? 'pagamento do principal' : 'entrada'));
+      meta.appendChild(tagEmp);
     }
     if(l.dataVencimento){
       const tagVenc = document.createElement('span'); tagVenc.className='tag'; tagVenc.textContent = 'Vence '+formatarDataExibicao(l.dataVencimento);
@@ -2183,10 +2284,11 @@ function renderizarResumoListaLancamentos(lista, statusFiltro, seletor){
   const resumoEl = $(seletor||'#resumo-lista-lancamentos');
   if(!resumoEl) return;
   if(lista.length===0){ resumoEl.innerHTML = ''; return; }
-  const totalDespesas = lista.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
-  const totalReceitas = lista.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
-  const totalGeral = totalReceitas + totalDespesas;
   const mostrarDevido = statusFiltro==='pendente';
+  const baseSoma = mostrarDevido ? lista.filter(l=>!ehPago(l)) : lista;
+  const totalDespesas = baseSoma.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+Number(l.valor||0),0);
+  const totalReceitas = baseSoma.filter(l=>l.tipo==='receita').reduce((s,l)=>s+Number(l.valor||0),0);
+  const totalGeral = totalReceitas + totalDespesas;
   const rotulo = mostrarDevido ? 'Valor total devido' : 'Soma desta lista';
   const valorPrincipal = mostrarDevido ? totalDespesas : totalGeral;
   resumoEl.innerHTML = '';
@@ -2353,7 +2455,7 @@ function renderizarListaVisaoGeral(){
   if(catFiltro) todos = todos.filter(l=> l.categoria === catFiltro);
   if(tipoFiltro) todos = todos.filter(l=> l.tipo === tipoFiltro);
   if(statusFiltro==='pago') todos = todos.filter(ehPago);
-  if(statusFiltro==='pendente') todos = todos.filter(l=>!ehPago(l));
+  if(statusFiltro==='pendente') todos = todos.filter(l=>!ehPago(l) || l.emprestimoId);
   if(!busca && !catFiltro) todos = agruparFaturasNaLista(todos);
   todos = ordenarPorVencimento(todos);
 
@@ -4588,6 +4690,7 @@ function abrirModalLancamento(lancamentoExistente){
   modoEdicaoId = lancamentoExistente ? lancamentoExistente.id : null;
   $('#titulo-modal-lancamento').textContent = lancamentoExistente ? 'Editar lançamento' : 'Novo lançamento';
   $('#linha-excluir').style.display = lancamentoExistente ? 'flex' : 'none';
+  $('#btn-tipo-emprestimo').style.display = lancamentoExistente ? 'none' : 'block';
   $('#m-descricao').value = lancamentoExistente ? lancamentoExistente.descricao : '';
   $('#m-valor').value = lancamentoExistente ? lancamentoExistente.valor : '';
   $('#m-data').value = lancamentoExistente ? lancamentoExistente.data : isoDeData(new Date());
@@ -5100,7 +5203,9 @@ async function salvarLancamento(ignorarAvisoLimite){
         valorOriginal: (Number(existente.desconto)>0 ? Number(valorDigitado)+Number(existente.desconto) : (existente.valorOriginal||0)),
         desconto: existente.desconto || 0,
         juros: existente.juros || 0,
-        jurosLancamentoId: existente.jurosLancamentoId || ''
+        jurosLancamentoId: existente.jurosLancamentoId || '',
+        emprestimoId: existente.emprestimoId || '', tipoEmprestimo: existente.tipoEmprestimo || '',
+        competencia: existente.competencia || '', periodoInicio: existente.periodoInicio || ''
       };
       if(payload.pago && !ehPago(existente)){ await aplicarExtrasPagamento(payload, extras); }
       else if(!payload.pago && ehPago(existente)){ await limparExtrasPagamento(payload); }
@@ -5520,6 +5625,355 @@ function confirmarExclusaoCartoesLote(){
     mostrarToast(erro ? 'Não foi possível excluir todos ('+apagados.size+' de '+n+' excluídos). Verifique a conexão e tente novamente.' : n+' cartão(ões) excluído(s).');
   });
 }
+
+
+/* =========================================================================
+   EMPRÉSTIMOS RECEBIDOS (dinheiro emprestado que você paga com juros mensais)
+   - A entrada vira uma receita do mês.
+   - Todo mês, o juros (taxa × saldo que falta pagar) vira uma despesa pendente.
+   - Pagamento de parte do principal vira despesa e reduz o saldo; o juros dos
+     meses seguintes é calculado sobre o novo saldo.
+========================================================================= */
+let emprestimoEmEdicaoId = null;
+let emprestimoPagandoPrincipalId = null;
+
+function arred2(v){ return Math.round((Number(v)||0)*100)/100; }
+function semIdEmprestimo(emp){ const o = Object.assign({}, emp); delete o.id; return o; }
+function lancamentosDoEmprestimo(emp){ return lancamentos.filter(l=> l.emprestimoId===emp.id); }
+function saldoEmprestimoEm(emp, dataISO){
+  const pago = lancamentos
+    .filter(l=> l.emprestimoId===emp.id && l.tipoEmprestimo==='principal' && ehPago(l) && (l.data||'')<=dataISO)
+    .reduce((s,l)=>s+Number(l.valor||0),0);
+  return Math.max(0, arred2(Number(emp.valor||0) - pago));
+}
+function saldoEmprestimo(emp){ return saldoEmprestimoEm(emp, '9999-12-31'); }
+function vencimentoJurosAPartirDe(emp, dataISO){
+  // primeiro vencimento mensal (mesmo dia do recebimento) que cai em dataISO ou depois
+  for(let k=1;k<=600;k++){
+    const dk = somarMeses(emp.data, k);
+    if(dk >= dataISO) return {k, data:dk, inicioPeriodo: somarMeses(emp.data, k-1)};
+  }
+  return null;
+}
+function jurosDoPeriodo(emp, inicioPeriodoISO){
+  return arred2(saldoEmprestimoEm(emp, inicioPeriodoISO) * (Number(emp.taxaMensal)||0) / 100);
+}
+async function garantirCategoriaPorNome(nome){
+  const existente = categorias.find(c=> c.nome.toLowerCase()===nome.toLowerCase());
+  if(existente) return existente.nome;
+  const criado = await criarDocumento('categorias', {nome});
+  categorias.push({id: criado.name.split('/').pop(), nome});
+  preencherSelectsCategoria();
+  return nome;
+}
+
+async function sincronizarJurosEmprestimos(){
+  if(!emprestimos.length) return;
+  const chaveHoje = chaveMes(new Date());
+  let criouAlgo = false;
+  for(const emp of emprestimos){
+    const taxa = Number(emp.taxaMensal)||0;
+    if(taxa<=0) continue;
+    const comps = new Set(String(emp.competencias||'').split(',').filter(Boolean));
+    let mudou = false; let jaGerouFuturo = false;
+    for(let k=1;k<=600;k++){
+      const dk = somarMeses(emp.data, k);
+      const chave = dk.slice(0,7);
+      if(chave > chaveHoje){ if(jaGerouFuturo) break; jaGerouFuturo = true; }
+      const dPrev = somarMeses(emp.data, k-1);
+      if(saldoEmprestimoEm(emp, dPrev) <= 0.005) break;
+      if(chave < (emp.geraDesde||'0000-00')) continue;
+      if(comps.has(chave)) continue;
+      const valor = jurosDoPeriodo(emp, dPrev);
+      comps.add(chave); mudou = true;
+      if(valor <= 0) continue;
+      const nomeCategoria = await garantirCategoriaPorNome('Juros de Empréstimo');
+      const payload = {
+        descricao: 'Juros do empréstimo '+emp.nome+' ('+chave.slice(5)+'/'+chave.slice(0,4)+')',
+        valor, data: dk, dataVencimento: dk, categoria: nomeCategoria, pessoa: emp.pessoa || pessoaAtual || 'Wendel',
+        tipo:'despesa', formaPagamento:'dinheiro', cartao:'', parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+        pago:false, emprestimoId: emp.id, tipoEmprestimo:'juros', competencia: chave, periodoInicio: dPrev
+      };
+      const idFixo = 'jur_'+emp.id+'_'+chave.replace('-','');
+      const criado = await criarDocumento('lancamentos', payload, idFixo);
+      if(!criado.jaExistia){ lancamentos.push(Object.assign({id: idFixo}, payload)); criouAlgo = true; }
+    }
+    if(mudou){
+      emp.competencias = Array.from(comps).sort().join(',');
+      await atualizarDocumento('emprestimos', emp.id, semIdEmprestimo(emp));
+    }
+  }
+  if(criouAlgo) lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+}
+
+async function recalcularJurosPendentes(emp){
+  let alterados = 0;
+  for(const l of lancamentosDoEmprestimo(emp)){
+    if(l.tipoEmprestimo!=='juros' || ehPago(l) || !l.periodoInicio) continue;
+    const novo = jurosDoPeriodo(emp, l.periodoInicio);
+    if(novo>0 && Math.abs(novo - Number(l.valor||0)) >= 0.005){
+      const payload = Object.assign({}, l, {valor: novo}); delete payload.id;
+      await atualizarDocumento('lancamentos', l.id, payload);
+      const idx = lancamentos.findIndex(x=>x.id===l.id);
+      if(idx>-1) lancamentos[idx] = Object.assign({id:l.id}, payload);
+      alterados++;
+    }
+  }
+  return alterados;
+}
+
+function renderizarEmprestimos(){
+  const lista = $('#lista-emprestimos'); const resumo = $('#resumo-emprestimos');
+  if(!lista) return;
+  lista.innerHTML = '';
+  if(emprestimos.length===0){
+    resumo.textContent = 'Nenhum empréstimo cadastrado ainda.';
+    return;
+  }
+  const totalSaldo = emprestimos.reduce((s,e)=>s+saldoEmprestimo(e),0);
+  const emAberto = emprestimos.filter(e=>saldoEmprestimo(e)>0.005).length;
+  resumo.textContent = 'Total que ainda falta pagar: '+formatarMoeda(totalSaldo)+' • '+emAberto+(emAberto===1?' empréstimo em aberto':' empréstimos em aberto');
+  const hojeISO = isoDeData(new Date());
+  emprestimos.slice().sort((a,b)=> (b.data||'').localeCompare(a.data||'')).forEach(emp=>{
+    const saldo = saldoEmprestimo(emp);
+    const quitado = saldo <= 0.005;
+    const vinc = lancamentosDoEmprestimo(emp);
+    const principalPago = arred2(Number(emp.valor||0) - saldo);
+    const jurosPagos = vinc.filter(l=>l.tipoEmprestimo==='juros' && ehPago(l)).reduce((s,l)=>s+Number(l.valor||0),0);
+    const jurosPend = vinc.filter(l=>l.tipoEmprestimo==='juros' && !ehPago(l)).reduce((s,l)=>s+Number(l.valor||0),0);
+
+    const card = document.createElement('div'); card.className='bloco';
+    const topo = document.createElement('div'); topo.className='emp-topo';
+    const nome = document.createElement('div'); nome.className='emp-nome'; nome.textContent = emp.nome;
+    const selo = document.createElement('span'); selo.className='emp-selo'+(quitado?' quitado':''); selo.textContent = quitado ? 'Quitado' : 'Em aberto';
+    topo.appendChild(nome); topo.appendChild(selo); card.appendChild(topo);
+
+    const rot = document.createElement('div'); rot.className='emp-saldo-rot'; rot.textContent = 'Falta pagar do principal';
+    const val = document.createElement('div'); val.className='emp-saldo'+(quitado?' zero':''); val.textContent = formatarMoeda(saldo);
+    card.appendChild(rot); card.appendChild(val);
+
+    const linhas = [
+      ['Valor recebido', formatarMoeda(emp.valor)+' em '+formatarDataAno(dataISOparaData(emp.data))],
+      ['Juros ao mês', String(Number(emp.taxaMensal||0)).replace('.',',')+'% sobre o que falta pagar'],
+      ['Principal já devolvido', formatarMoeda(principalPago)]
+    ];
+    if(!quitado){
+      const prox = vencimentoJurosAPartirDe(emp, hojeISO);
+      if(prox){
+        const gerado = vinc.find(l=>l.tipoEmprestimo==='juros' && l.competencia===prox.data.slice(0,7));
+        const valorProx = gerado ? Number(gerado.valor||0) : jurosDoPeriodo(emp, prox.inicioPeriodo);
+        linhas.push(['Próximo juros', formatarMoeda(valorProx)+' — vence em '+formatarDataAno(dataISOparaData(prox.data))]);
+        linhas.push(['Juros por mês, com o saldo de hoje', formatarMoeda(arred2(saldo*(Number(emp.taxaMensal)||0)/100))]);
+      }
+    }
+    linhas.push(['Juros já pagos', formatarMoeda(jurosPagos)]);
+    linhas.push(['Juros pendentes', formatarMoeda(jurosPend)]);
+    const bloco = document.createElement('div'); bloco.className='bloco-relatorio'; bloco.style.marginTop='10px';
+    linhas.forEach(([r,v])=>{
+      const li = document.createElement('div'); li.className='linha-relatorio';
+      const a = document.createElement('span'); a.className='rot'; a.textContent = r;
+      const b = document.createElement('span'); b.className='val'; b.textContent = v;
+      li.appendChild(a); li.appendChild(b); bloco.appendChild(li);
+    });
+    card.appendChild(bloco);
+
+    const botoes = document.createElement('div'); botoes.className='emp-botoes';
+    if(!quitado){
+      const b1 = document.createElement('button'); b1.className='btn-primario'; b1.textContent='Pagar parte do principal';
+      b1.addEventListener('click', ()=>abrirModalPagarPrincipal(emp, false));
+      const b2 = document.createElement('button'); b2.className='btn-secundario'; b2.textContent='Quitar tudo';
+      b2.addEventListener('click', ()=>abrirModalPagarPrincipal(emp, true));
+      botoes.appendChild(b1); botoes.appendChild(b2);
+    }
+    const b3 = document.createElement('button'); b3.className='btn-secundario'; b3.textContent='Editar juros/nome';
+    b3.addEventListener('click', ()=>abrirModalEmprestimo(emp));
+    const b4 = document.createElement('button'); b4.className='btn-secundario'; b4.textContent='Recalcular juros pendentes';
+    b4.addEventListener('click', ()=>confirmarRecalcularJuros(emp));
+    const b5 = document.createElement('button'); b5.className='btn-secundario'; b5.style.color='var(--rose)'; b5.textContent='Excluir empréstimo';
+    b5.addEventListener('click', ()=>confirmarExcluirEmprestimo(emp));
+    botoes.appendChild(b3); if(!quitado) botoes.appendChild(b4); botoes.appendChild(b5);
+    card.appendChild(botoes);
+
+    const det = document.createElement('details'); det.className='emp-hist';
+    const sm = document.createElement('summary'); sm.textContent = 'Histórico ('+vinc.length+')';
+    det.appendChild(sm);
+    vinc.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).forEach(l=>{
+      const h = document.createElement('div'); h.className='h';
+      const esq = document.createElement('div');
+      const t = document.createElement('div'); t.textContent = l.tipoEmprestimo==='entrada' ? 'Dinheiro recebido' : (l.tipoEmprestimo==='principal' ? 'Pagamento do principal' : 'Juros '+(l.competencia ? l.competencia.slice(5)+'/'+l.competencia.slice(0,4) : ''));
+      const d = document.createElement('div'); d.className='d'; d.textContent = formatarDataExibicao(l.data)+(l.tipoEmprestimo==='juros' ? (ehPago(l)?' • pago':' • pendente') : '');
+      esq.appendChild(t); esq.appendChild(d);
+      const v = document.createElement('div'); v.textContent = formatarMoeda(l.valor);
+      h.appendChild(esq); h.appendChild(v); det.appendChild(h);
+    });
+    card.appendChild(det);
+    lista.appendChild(card);
+  });
+}
+
+function atualizarResumoModalEmprestimo(){
+  const valor = parseFloat($('#emp-valor').value)||0;
+  const taxa = parseFloat($('#emp-taxa').value)||0;
+  const el = $('#emp-resumo');
+  if(emprestimoEmEdicaoId){
+    el.textContent = 'Ao mudar a taxa, os juros pendentes são recalculados. Meses já pagos não mudam.';
+  } else if(valor>0){
+    el.textContent = 'Juros do primeiro mês: '+formatarMoeda(arred2(valor*taxa/100))+'. O juros já aparece como pendente em Lançamentos, no mesmo dia do mês do recebimento, a partir do mês atual.';
+  } else { el.textContent = 'Informe o valor e a taxa para ver o juros mensal.'; }
+}
+function abrirModalEmprestimo(emp){
+  emprestimoEmEdicaoId = emp ? emp.id : null;
+  $('#titulo-modal-emprestimo').textContent = emp ? 'Editar empréstimo' : 'Novo empréstimo';
+  $('#btn-confirmar-emprestimo').textContent = emp ? 'Salvar alterações' : 'Salvar empréstimo';
+  $('#emp-nome').value = emp ? emp.nome : '';
+  $('#emp-valor').value = emp ? emp.valor : '';
+  $('#emp-taxa').value = emp ? emp.taxaMensal : '';
+  $('#emp-data').value = emp ? emp.data : isoDeData(new Date());
+  $('#emp-valor').disabled = !!emp; $('#emp-data').disabled = !!emp; $('#emp-conta').disabled = !!emp;
+  const sel = $('#emp-conta'); sel.innerHTML = '<option value="">Não informar</option>';
+  contasBancarias.forEach(c=>{ const o = document.createElement('option'); o.value=c.nome; o.textContent=c.nome; sel.appendChild(o); });
+  sel.value = emp ? (emp.contaBancaria||'') : '';
+  atualizarResumoModalEmprestimo();
+  $('#modal-emprestimo').classList.add('ativo');
+}
+function fecharModalEmprestimo(){ $('#modal-emprestimo').classList.remove('ativo'); emprestimoEmEdicaoId = null; }
+
+async function salvarEmprestimo(){
+  const nome = ($('#emp-nome').value||'').trim();
+  const valor = arred2(parseFloat($('#emp-valor').value));
+  const taxa = parseFloat($('#emp-taxa').value);
+  const data = $('#emp-data').value;
+  const conta = $('#emp-conta').value||'';
+  if(!nome){ mostrarToast('Informe de quem foi o empréstimo.'); return; }
+  if(!emprestimoEmEdicaoId && !(valor>0)){ mostrarToast('Informe o valor recebido.'); return; }
+  if(!(taxa>=0)){ mostrarToast('Informe a taxa de juros ao mês (pode ser 0).'); return; }
+  if(!data){ mostrarToast('Informe a data em que recebeu.'); return; }
+  const btn = $('#btn-confirmar-emprestimo'); btn.disabled = true; btn.textContent = 'Salvando...';
+  try{
+    if(emprestimoEmEdicaoId){
+      const emp = emprestimos.find(e=>e.id===emprestimoEmEdicaoId);
+      const taxaMudou = Number(emp.taxaMensal) !== taxa;
+      emp.nome = nome; emp.taxaMensal = taxa;
+      await atualizarDocumento('emprestimos', emp.id, semIdEmprestimo(emp));
+      if(taxaMudou) await recalcularJurosPendentes(emp);
+      await sincronizarJurosEmprestimos();
+      fecharModalEmprestimo(); renderizarTudo(); mostrarToast('Empréstimo atualizado.');
+    } else {
+      const chaveHoje = chaveMes(new Date());
+      const primeiro = somarMeses(data, 1).slice(0,7);
+      const campos = { nome, valor, taxaMensal: taxa, data, contaBancaria: conta, pessoa: pessoaAtual||'Wendel',
+                       geraDesde: primeiro > chaveHoje ? primeiro : chaveHoje, competencias: '' };
+      const criado = await criarDocumento('emprestimos', campos);
+      const emp = Object.assign({id: criado.name.split('/').pop()}, campos);
+      emprestimos.push(emp);
+      const nomeCategoria = await garantirCategoriaPorNome('Empréstimo');
+      const receita = {
+        descricao: 'Empréstimo recebido — '+nome, valor, data, categoria: nomeCategoria, pessoa: pessoaAtual||'Wendel',
+        tipo:'receita', formaPagamento:'dinheiro', cartao:'', contaBancaria: conta, parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+        pago:true, emprestimoId: emp.id, tipoEmprestimo:'entrada'
+      };
+      const cr = await criarDocumento('lancamentos', receita);
+      lancamentos.unshift(Object.assign({id: cr.name.split('/').pop()}, receita));
+      await sincronizarJurosEmprestimos();
+      lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+      fecharModalEmprestimo(); renderizarTudo(); irParaPainel('painel-emprestimos');
+      mostrarToast('Empréstimo registrado. A entrada foi lançada como receita.');
+    }
+  }catch(e){
+    mostrarToast('Não foi possível salvar o empréstimo. Verifique a conexão.');
+  }
+  btn.disabled = false; btn.textContent = emprestimoEmEdicaoId ? 'Salvar alterações' : 'Salvar empréstimo';
+}
+
+function atualizarResumoPagarPrincipal(){
+  const emp = emprestimos.find(e=>e.id===emprestimoPagandoPrincipalId);
+  const el = $('#pp-resumo'); if(!emp){ el.textContent=''; return; }
+  const valor = arred2(parseFloat($('#pp-valor').value)||0);
+  const data = $('#pp-data').value || isoDeData(new Date());
+  const saldo = saldoEmprestimo(emp);
+  const taxa = Number(emp.taxaMensal)||0;
+  if(!(valor>0)){ el.textContent = 'Saldo atual: '+formatarMoeda(saldo)+'. Informe o valor que está pagando do principal.'; return; }
+  if(valor>saldo+0.005){ el.textContent = 'O valor é maior que o saldo ('+formatarMoeda(saldo)+').'; return; }
+  const novo = Math.max(0, arred2(saldo-valor));
+  const j = vencimentoJurosAPartirDe(emp, data);
+  let txt = 'Saldo: '+formatarMoeda(saldo)+' → '+formatarMoeda(novo)+'.';
+  if(novo<=0.005){ txt += ' O empréstimo fica quitado.'; }
+  if(j && taxa>0 && novo>0.005){
+    const atual = jurosDoPeriodo(emp, j.inicioPeriodo);
+    const prox = somarMeses(emp.data, j.k+1);
+    txt += ' O juros que vence em '+formatarDataAno(dataISOparaData(j.data))+' continua '+formatarMoeda(atual)+' (já corria sobre o saldo anterior). A partir de '+formatarDataAno(dataISOparaData(prox))+' o juros mensal passa a ser '+formatarMoeda(arred2(novo*taxa/100))+' (hoje é '+formatarMoeda(arred2(saldo*taxa/100))+').';
+  }
+  el.textContent = txt;
+}
+function abrirModalPagarPrincipal(emp, quitarTudo){
+  emprestimoPagandoPrincipalId = emp.id;
+  const saldo = saldoEmprestimo(emp);
+  $('#texto-pagar-principal').textContent = emp.nome+' — falta pagar '+formatarMoeda(saldo)+' do principal.';
+  $('#pp-valor').value = quitarTudo ? saldo : '';
+  $('#pp-data').value = isoDeData(new Date());
+  atualizarResumoPagarPrincipal();
+  $('#modal-pagar-principal').classList.add('ativo');
+}
+function fecharModalPagarPrincipal(){ $('#modal-pagar-principal').classList.remove('ativo'); emprestimoPagandoPrincipalId = null; }
+async function confirmarPagarPrincipal(){
+  const emp = emprestimos.find(e=>e.id===emprestimoPagandoPrincipalId);
+  if(!emp) return;
+  const valor = arred2(parseFloat($('#pp-valor').value));
+  const data = $('#pp-data').value;
+  const saldo = saldoEmprestimo(emp);
+  if(!(valor>0)){ mostrarToast('Informe o valor pago.'); return; }
+  if(valor>saldo+0.005){ mostrarToast('O valor é maior que o saldo do empréstimo.'); return; }
+  if(!data){ mostrarToast('Informe a data do pagamento.'); return; }
+  const btn = $('#btn-confirmar-pagar-principal'); btn.disabled = true; btn.textContent = 'Salvando...';
+  try{
+    const nomeCategoria = await garantirCategoriaPorNome('Pagamento de Empréstimo');
+    const payload = {
+      descricao: 'Pagamento do empréstimo '+emp.nome, valor, data, categoria: nomeCategoria, pessoa: pessoaAtual||'Wendel',
+      tipo:'despesa', formaPagamento:'dinheiro', cartao:'', parcelaAtual:1, parcelaTotal:1, grupoParcelaId:'',
+      pago:true, dataPagamento: data, emprestimoId: emp.id, tipoEmprestimo:'principal'
+    };
+    const criado = await criarDocumento('lancamentos', payload);
+    lancamentos.unshift(Object.assign({id: criado.name.split('/').pop()}, payload));
+    await recalcularJurosPendentes(emp);
+    await sincronizarJurosEmprestimos();
+    lancamentos.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+    fecharModalPagarPrincipal(); renderizarTudo();
+    mostrarToast(saldoEmprestimo(emp)<=0.005 ? 'Empréstimo quitado!' : 'Pagamento registrado. Juros dos próximos meses recalculados.');
+  }catch(e){
+    mostrarToast('Não foi possível registrar o pagamento. Verifique a conexão.');
+  }
+  btn.disabled = false; btn.textContent = 'Registrar pagamento';
+}
+function confirmarRecalcularJuros(emp){
+  abrirConfirmacao('Recalcular juros pendentes', 'Os juros ainda não pagos deste empréstimo serão recalculados com a taxa e o saldo atuais. Valores que você editou à mão nesses lançamentos serão substituídos. Deseja continuar?', async ()=>{
+    try{
+      const n = await recalcularJurosPendentes(emp);
+      fecharConfirmacao(); renderizarTudo();
+      mostrarToast(n ? n+' lançamento(s) de juros recalculado(s).' : 'Nada para recalcular: os valores já estão certos.');
+    }catch(e){ mostrarToast('Não foi possível recalcular. Verifique a conexão.'); }
+  });
+}
+function confirmarExcluirEmprestimo(emp){
+  const n = lancamentosDoEmprestimo(emp).length;
+  abrirConfirmacao('Excluir empréstimo', 'Isso exclui o empréstimo "'+emp.nome+'" e também os '+n+' lançamento(s) ligados a ele (entrada, juros e pagamentos). Esta ação não pode ser desfeita. Deseja continuar?', async ()=>{
+    try{
+      for(const l of lancamentosDoEmprestimo(emp)){ await excluirDocumento('lancamentos', l.id); }
+      await excluirDocumento('emprestimos', emp.id);
+      lancamentos = lancamentos.filter(l=>l.emprestimoId!==emp.id);
+      emprestimos = emprestimos.filter(e=>e.id!==emp.id);
+      fecharConfirmacao(); renderizarTudo(); mostrarToast('Empréstimo excluído.');
+    }catch(e){ mostrarToast('Não foi possível excluir tudo. Verifique a conexão e tente de novo.'); renderizarTudo(); }
+  });
+}
+
+$('#btn-novo-emprestimo').addEventListener('click', ()=>abrirModalEmprestimo(null));
+$('#btn-cancelar-emprestimo').addEventListener('click', fecharModalEmprestimo);
+$('#btn-confirmar-emprestimo').addEventListener('click', salvarEmprestimo);
+['emp-valor','emp-taxa'].forEach(id=> $('#'+id).addEventListener('input', atualizarResumoModalEmprestimo));
+$('#btn-cancelar-pagar-principal').addEventListener('click', fecharModalPagarPrincipal);
+$('#btn-confirmar-pagar-principal').addEventListener('click', confirmarPagarPrincipal);
+['pp-valor','pp-data'].forEach(id=> $('#'+id).addEventListener('input', atualizarResumoPagarPrincipal));
+$('#btn-tipo-emprestimo').addEventListener('click', ()=>{ fecharModalLancamento(); abrirModalEmprestimo(null); });
 
 /* =========================================================================
    NAVEGAÇÃO
