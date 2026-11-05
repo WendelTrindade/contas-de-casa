@@ -1,6 +1,6 @@
 /* Contas de Casa — service worker (guarda só a "casca" do aplicativo).
    Os dados financeiros NUNCA são guardados aqui: pedidos ao Firebase/Google passam direto. */
-const VERSAO = 'contas-2.6.0';
+const VERSAO = 'contas-2.7.1';
 const CASCA = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
